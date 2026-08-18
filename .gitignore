@@ -4,3 +4,5 @@ __pycache__/
 .env
 *.egg-info/
 .pytest_cache/
+experiments/e2e_benchmark/worktrees/
+experiments/e2e_benchmark/results/

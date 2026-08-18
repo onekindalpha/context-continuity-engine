@@ -1,0 +1,312 @@
+=== docs/results.md (전문) ===
+# 실행 결과
+
+fixture `examples/groq_model_migration_session`(실제 개발 세션 20turn) 기준. 실행: `python3 scripts/run_comparison.py`. 원본 수치는 `examples/groq_model_migration_session/comparison_result.md`, `.json`.
+
+## 요약 (3차 측정 — SUMMARY_MAX_CHARS=40 + GOAL_PATTERNS 보강)
+
+| 방식 | context token | 원본 대비 감소율 | reconstruction PASS(7문항 중) |
+|---|---|---|---|
+| 원본 전체 | 1311 | - | - |
+| baseline: recency truncation(최근 6 turn) | 395 | 69.9% | 6 |
+| baseline: generic summary(turn당 40자 절삭) | 326 | 75.1% | 7 |
+| 제안: Working Context(task_relevance 기반 KEEP/COMPRESS/EXTERNALIZE/DISCARD) | 486 | 62.9% | **7** |
+
+token 수는 근사치다(`docs/decisions/0007`). 절대값이 아니라 방식 간 상대 비교로 읽는다.
+
+### 측정 히스토리
+
+| 방식 | 1차(SUMMARY_MAX_CHARS=120) | 2차(=40) | 3차(=40 + GOAL_PATTERNS 추가) |
+|---|---|---|---|
+| 제안 방식 token | 581 (55.7% 감소) | 462 (64.8% 감소) | 486 (62.9% 감소) |
+| 제안 방식 reconstruction PASS | 6/7 | 6/7 | **7/7** |
+
+3차 측정에서 `src/context_analysis.py`의 `GOAL_PATTERNS`에 정규식 `기능이\s?없다`를 추가했다. 이 fixture의 turn 2("...pdf 등 첨부 기능이 없다고")가 사람이 만든 ground truth(`task_context_analysis.example.json`)에서는 goal로 표시돼 있는데, 기존 규칙으로는 어떤 category에도 걸리지 않아 ContextItem 자체가 없었다. 새 패턴을 추가하자 이 turn이 goal로 분류됐고, "현재 작업의 목표는?" 질문이 baseline_recency_truncation과 제안 방식 모두에서 FAIL이던 것이 제안 방식에서만 PASS로 바뀌었다. 20개 turn 전체를 확인해 이 패턴이 다른 turn을 잘못 걸러내지 않는 것도 확인했다(`git log` 커밋 메시지 참조). 전체 테스트 94개 통과.
+
+## 판단
+
+**baseline_recency_truncation 대비**: token은 여전히 더 쓴다(486 vs 395, +23%). 하지만 이제 reconstruction에서 recency_truncation이 놓치는 질문(목표)을 제안 방식은 답한다(7/7 vs 6/7) — token을 조금 더 쓰는 대신 정답률에서 앞선다. "token만 적으면 이긴다"는 기준이 아니라 "같은 token 예산에서 얼마나 더 잘 재구성되는가"로 보면, 이번 측정에서는 제안 방식이 우위다.
+
+**baseline_generic_summary 대비**: reconstruction PASS는 동률(7/7)이지만 token은 여전히 더 쓴다(486 vs 326, +49%). 이 baseline은 여전히 이기지 못했다 — 모든 turn을 균일하게 짧게 자르기만 해도 이 fixture에서는 완전한 재구성이 가능했다는 뜻이고, 제안 방식의 "선택적으로 버린다"는 접근이 아직 이 baseline보다 효율적이라고 말할 수 없다.
+
+즉, 두 baseline을 동시에, 모든 지표에서 이긴 것은 아니다. 하나(recency_truncation)는 reconstruction 품질에서 앞섰고, 다른 하나(generic_summary)는 아직 앞서지 못했다. 이것이 정확한 현재 상태다.
+
+## 남은 원인
+
+- decision category는 이 fixture에서 여전히 규칙 기반으로 일부만 잡힌다(`docs/decisions/0006`). goal 하나를 고친 것이지 추출기 전체의 낮은 정확도 문제(턴 단위 일치 7/18)를 해결한 게 아니다.
+- 이번에 추가한 `기능이\s?없다` 패턴은 이 fixture 하나를 보고 만든 규칙이다. 다른 세션에서도 통할지는 검증되지 않았다 — 오히려 rule-based 접근의 "fixture별로 규칙을 손으로 추가해야 한다"는 근본 한계를 보여주는 사례이기도 하다.
+
+## 다음 개선 과제
+
+- ~~`SUMMARY_MAX_CHARS`를 baseline_generic_summary 수준(40자대)으로 낮추고 재측정한다.~~ 완료.
+- ~~"현재 작업의 목표는?" 질문의 FAIL을 규칙 추가로 고쳐본다.~~ 완료 — recency_truncation 대비는 역전, generic_summary 대비는 아직.
+- baseline_generic_summary를 token 기준으로도 이기려면: COMPRESS 요약 로직 자체를 baseline의 균일 절삭보다 효율적으로 만들어야 한다(예: KEEP 항목과 겹치는 정보 제거, 중복 COMPRESS 항목 병합). 아직 시도하지 않음.
+- 규칙 기반 추출기가 fixture마다 손으로 규칙을 추가해야 하는 문제를 LLM 기반 추출기로 교체해 근본적으로 개선한다(`docs/decisions/0006` 재검토 조건).
+- fixture를 하나 더 늘려 결과가 이 세션에 한정된 것인지 확인한다. 지금은 20turn 세션 1개로만 측정했고, 이번 GOAL_PATTERNS 추가는 그 한계를 오히려 더 뚜렷하게 보여준다.
+
+## 정직성 관련 메모
+
+이 문서는 baseline 대비 제안 방식이 모든 지표에서 이긴다는 결론을 내리지 않는다. AGENTS.md 규칙(뒷받침되지 않는 성능 수치 금지)에 따라 측정된 그대로 기록했다. 정확한 현재 상태: 원본 전체 복사(1311 token) 대비로는 62.9% 감소하며 7문항 모두 재구성 가능하고, 가장 단순한 baseline(recency_truncation) 대비로는 token을 더 쓰지만 재구성 품질에서 앞서며, 또 다른 baseline(generic_summary) 대비로는 재구성 품질은 동률이지만 token 효율에서 아직 뒤진다.
+
+
+=== docs/decisions/0009-baseline-design.md (전문) ===
+# 0009. baseline 설계
+
+## 상태
+
+확정
+
+## 결정
+
+baseline을 두 가지로 둔다.
+
+1. recency truncation: 최근 N개 turn만 verbatim으로 남기고 나머지는 버린다. N=6.
+2. generic summary: 모든 turn을 동일한 길이(40자)로 잘라서 남긴다. task_relevance/importance를 계산하지 않는다.
+
+둘 다 `src/baseline.py`에 구현했다.
+
+## 이유
+
+두 방식은 LLM 없이 흔히 쓰이는 실제 관행을 대표한다. recency truncation은 sliding-window 방식 채팅 컨텍스트 관리의 기본형이다. generic summary는 category/중요도 구분 없이 일괄로 길이만 줄이는 방식이다. 제안 방식(task_relevance/importance 기반 KEEP/COMPRESS/EXTERNALIZE/DISCARD)이 실제로 이 두 방식보다 나은지 비교해야 "context는 남기고 token은 줄인다"는 주장을 검증할 수 있다.
+
+N=6, 40자라는 값은 이 fixture(20 turn, 두 episode)에서 제안 방식의 KEEP 대상 turn 수(현재 episode, turn 14~19, 6개)와 맞춘 것이다. baseline과 제안 방식이 "최근 것을 온전히 남긴다"는 점에서는 동일한 조건에서 시작하도록 하기 위함이다.
+
+## 알려진 한계
+
+- N=6, 40자는 이 fixture 하나에 맞춘 값이다. 다른 세션에서는 다른 값이 적절할 수 있다 — 일반화되지 않았다.
+- generic summary는 잘린 지점을 고려하지 않는다. 문장 중간에서 잘려도 그대로 40자에서 끊는다.
+
+
+=== docs/decisions/0010-reconstruction-test-method.md (전문) ===
+# 0010. reconstruction test 판정 방법
+
+## 상태
+
+확정(근사)
+
+## 결정
+
+고정된 7개 질문(docs/evaluation.md)에 대해, 각 context 방식이 정답 turn의 내용을 포함하는지를 기계적으로 판정한다. LLM으로 의미를 판정하지 않는다.
+
+방법:
+1. 사람이 만든 예시(`task_context_analysis.example.json`)를 정답으로 삼는다. 이 예시의 category와 depends_on으로 질문별 정답 turn_id 집합을 만든다.
+2. "결정 근거는?", "실패 이유는?"은 해당 decision/failure 항목 자신이 아니라 그 항목이 depends_on으로 참조하는 항목의 turn을 정답으로 본다.
+3. 각 context 방식이 그 turn_id를 즉시 포함하면(KEEP/COMPRESS, 또는 recency truncation의 포함 범위) PASS, 외부 보관(EXTERNALIZE)에만 있으면 RETRIEVABLE, 둘 다 아니면 FAIL로 판정한다.
+
+`src/reconstruction_test.py`에 구현했다.
+
+## 이유
+
+이 환경에 LLM API 자격증명이 없다(0006과 동일한 제약). 사람이 매번 7개 질문 × 3개 방식을 눈으로 읽고 판정하는 것은 재현 가능하지 않다. turn_id 포함 여부는 기계적으로 재현 가능한 근사치다.
+
+## 알려진 한계
+
+- "turn 내용이 context에 있다"는 것과 "그 내용으로 질문에 만족스럽게 답할 수 있다"는 것은 다르다. 이 test는 전자만 확인한다.
+- "결정 근거"/"실패 이유"를 depends_on 관계로 근사한 것은 검증되지 않은 가정이다. 실제로는 근거가 같은 turn 안에 있을 수도 있고, depends_on으로 연결 안 된 다른 turn에 있을 수도 있다.
+- 정답 자체가 사람이 만든 예시 하나에 의존한다. 그 예시가 놓친 정보는 이 test에서도 정답으로 잡히지 않는다.
+
+## 재검토 조건
+
+LLM 자격증명이 생기면, 같은 7개 질문에 대해 LLM이 실제로 답변을 생성하고 그 답변의 사실성을 원본과 대조하는 방식으로 교체를 검토한다.
+
+
+=== src/working_context.py (전문) ===
+"""Working Context 생성: retention_action을 실제로 실행한다.
+
+평가 목적: retention_action(KEEP/COMPRESS/EXTERNALIZE/DISCARD)이 계산만 되고
+끝나면 token 절감 효과를 측정할 수 없다. 이 모듈이 판단을 실제 텍스트로 만든다.
+
+실행 규칙:
+- KEEP        원본 turn 전문을 넣는다.
+- COMPRESS    summary만 넣는다. 원문은 넣지 않는다.
+- EXTERNALIZE 참조 한 줄만 넣고, 원문은 external store에 보관한다.
+- DISCARD     넣지 않는다. external store에도 넣지 않는다.
+
+의존성: 표준 라이브러리만 사용한다.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+EXTERNAL_REF_TEMPLATE = "[외부 보관: {item_id} ({category}) — 필요 시 turn {turns} 조회]"
+
+
+def build_working_context(
+    analysis: dict[str, Any], session: dict[str, Any]
+) -> dict[str, Any]:
+    """analysis의 retention_action에 따라 working context 텍스트를 만든다."""
+    turns_by_id = {t["turn_id"]: t for t in session["turns"]}
+
+    lines: list[str] = []
+    external_store: dict[str, dict[str, Any]] = {}
+    counts = {"KEEP": 0, "COMPRESS": 0, "EXTERNALIZE": 0, "DISCARD": 0}
+
+    for item in analysis["items"]:
+        action = item["retention_action"]
+        counts[action] = counts.get(action, 0) + 1
+
+        if action == "KEEP":
+            for tid in item["source_turn_ids"]:
+                turn = turns_by_id.get(tid)
+                if turn:
+                    lines.append(f"[{turn['speaker']}] {turn['text']}")
+        elif action == "COMPRESS":
+            lines.append(f"[{item['category']}] {item['summary']}")
+        elif action == "EXTERNALIZE":
+            lines.append(
+                EXTERNAL_REF_TEMPLATE.format(
+                    item_id=item["item_id"],
+                    category=item["category"],
+                    turns=item["source_turn_ids"],
+                )
+            )
+            external_store[item["item_id"]] = {
+                "category": item["category"],
+                "summary": item["summary"],
+                "source_turn_ids": item["source_turn_ids"],
+                "original_texts": [
+                    turns_by_id[tid]["text"] for tid in item["source_turn_ids"] if tid in turns_by_id
+                ],
+            }
+        # DISCARD: 아무것도 하지 않는다.
+
+    return {
+        "text": "\n".join(lines),
+        "external_store": external_store,
+        "action_counts": counts,
+        "included_item_ids": [
+            item["item_id"]
+            for item in analysis["items"]
+            if item["retention_action"] != "DISCARD"
+        ],
+    }
+
+
+def turn_coverage(analysis: dict[str, Any]) -> dict[str, Any]:
+    """analysis의 retention_action별로 turn_id를 in_context/retrievable로 나눈다.
+
+    평가 목적: reconstruction test(src/reconstruction_test.py)가 baseline과
+    같은 기준(turn_id 단위 포함 여부)으로 제안 방식을 비교할 수 있어야 한다.
+
+    분류 기준:
+    - KEEP, COMPRESS: working context 텍스트 안에 내용이 직접 들어간다
+      (COMPRESS는 요약이지만 의미는 남는다) → in_context
+    - EXTERNALIZE: 텍스트에는 참조 한 줄만 있고, 원문은 external store에
+      있다 → retrievable(즉시는 아니지만 조회하면 답변 가능)
+    - DISCARD, 그리고 애초에 ContextItem으로 추출되지 않은 turn: 아무 데도
+      없다 → 둘 다 아님
+
+    한계: 추출기가 모든 turn에 대해 ContextItem을 만들지는 않는다
+    (docs/decisions/0006 관찰된 한계 참조). ContextItem이 없는 turn은
+    이 함수 결과에 전혀 나타나지 않으며, 호출하는 쪽에서 "커버 안 됨"으로
+    처리해야 한다.
+    """
+    in_context: set[int] = set()
+    retrievable: set[int] = set()
+    for item in analysis["items"]:
+        action = item["retention_action"]
+        if action in ("KEEP", "COMPRESS"):
+            in_context.update(item["source_turn_ids"])
+        elif action == "EXTERNALIZE":
+            retrievable.update(item["source_turn_ids"])
+        # DISCARD: 아무 집합에도 넣지 않는다.
+    return {"in_context_turn_ids": in_context, "retrievable_turn_ids": retrievable}
+
+
+=== src/baseline.py (전문) ===
+"""Baseline 방식 두 가지: recency truncation, generic summary.
+
+평가 목적: 제안 방식(retention_action 기반 Working Context)이 실제로
+더 나은지 판단하려면 비교 대상이 있어야 한다(docs/evaluation.md).
+task_relevance/importance 계산 없이 흔히 쓰이는 두 가지 단순 방식을
+baseline으로 둔다. 설계 근거는 docs/decisions/0009-baseline-design.md.
+
+의존성: 표준 라이브러리만 사용한다.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+DEFAULT_KEEP_LAST_N_TURNS = 6
+DEFAULT_MAX_CHARS_PER_TURN = 40
+
+
+def recency_truncation(
+    session: dict[str, Any], keep_last_n_turns: int = DEFAULT_KEEP_LAST_N_TURNS
+) -> dict[str, Any]:
+    """최근 N개 turn만 verbatim으로 남기고 나머지는 버린다.
+
+    task_relevance/importance를 계산하지 않는다. 시간 순서(최근 여부)만
+    기준으로 삼는 sliding-window 방식이다. 버려진 turn은 어디에도
+    보관되지 않는다 — 나중에 다시 조회할 방법이 없다.
+    """
+    turns = session["turns"]
+    kept = turns[-keep_last_n_turns:] if keep_last_n_turns > 0 else []
+    kept_ids = {t["turn_id"] for t in kept}
+    lines = [f"[{t['speaker']}] {t['text']}" for t in kept]
+    all_ids = {t["turn_id"] for t in turns}
+    return {
+        "method": "recency_truncation",
+        "text": "\n".join(lines),
+        "in_context_turn_ids": kept_ids,
+        "retrievable_turn_ids": set(),
+        "dropped_turn_ids": all_ids - kept_ids,
+    }
+
+
+def generic_summary(
+    session: dict[str, Any], max_chars_per_turn: int = DEFAULT_MAX_CHARS_PER_TURN
+) -> dict[str, Any]:
+    """모든 turn을 동일한 길이로 잘라서 남긴다.
+
+    task_relevance/importance와 무관하게 turn마다 같은 글자 수만 남기는
+    방식이다. 의미를 이해하고 요약하는 것이 아니라 길이만 자르는 것이므로,
+    잘린 지점에 따라 핵심 정보가 잘려나갈 수 있다. 이 한계는 의도적으로
+    남겨둔다 — LLM 없이 규칙 기반으로 구현했기 때문이다(관련: 0006).
+    """
+    turns = session["turns"]
+    lines = []
+    for t in turns:
+        text = t["text"]
+        if len(text) > max_chars_per_turn:
+            text = text[:max_chars_per_turn] + "…"
+        lines.append(f"[{t['speaker']}] {text}")
+    all_ids = {t["turn_id"] for t in turns}
+    return {
+        "method": "generic_summary",
+        "text": "\n".join(lines),
+        "in_context_turn_ids": all_ids,
+        "retrievable_turn_ids": set(),
+        "dropped_turn_ids": set(),
+    }
+
+
+=== TASK ===
+# Benchmark task (실제 미해결 과제)
+
+이 프로젝트가 실제로 아직 풀지 못한 문제를 그대로 벤치마크 task로 쓴다. 조작된 예제가 아니다 — `docs/results.md`의 "다음 개선 과제"에 실제로 등록된 항목이다.
+
+## 지시문 (LLM에게 그대로 전달되는 문장)
+
+> `context-continuity-engine` 프로젝트에서 `src/context_analysis.py`와 `src/working_context.py`를 수정해서, `examples/groq_model_migration_session` fixture 기준으로 `scripts/run_comparison.py` 실행 결과의 `proposed_working_context` token 사용량을 `baseline_generic_summary`(326 token) 미만으로 줄여라. 단, 다음 두 조건을 반드시 지켜야 한다:
+> 1. `python3 -m unittest discover -s tests`가 전부 통과해야 한다(기존 테스트를 깨면 안 된다).
+> 2. reconstruction test 7문항 중 7문항 PASS(`comparison_result.json`의 `results.proposed_working_context.summary`)를 유지해야 한다 — token을 줄이려고 정답을 지우면 안 된다.
+> 코드를 수정한 뒤 `python3 scripts/run_comparison.py`를 실행해서 결과를 직접 확인하고, 조건을 만족했다고 판단되면 종료해라.
+
+## 판정 기준 (자동, harness.py가 실행)
+
+작업이 끝난 뒤(또는 최대 turn 수 도달 후) harness가 해당 worktree에서 직접 실행해서 판정한다 — LLM의 자기 보고를 믿지 않는다.
+
+1. `python3 -m unittest discover -s tests` exit code == 0
+2. `scripts/run_comparison.py` 실행 후 `comparison_result.json`에서:
+   - `token_usage.proposed_working_context.tokens` < 326
+   - `results` 요약에서 proposed_working_context PASS 수 == 7
+
+두 조건을 모두 만족해야 `task_success = true`.
+
+## 왜 이 task인가
+
+- 실제로 존재하는, 아직 안 풀린 문제다(`docs/results.md` "다음 개선 과제" 참조) — 조작 없음.
+- Context 의존성이 명확하다: 이 task를 제대로 풀려면 "SUMMARY_MAX_CHARS를 이미 120→40으로 낮춰봤지만 그것만으로는 부족했다", "KEEP 항목이 원문 그대로라 길다", "무작정 KEEP을 자르면 reconstruction이 깨질 수 있다"는 사전 지식이 있어야 한다. Context가 부실하면 이미 시도했던 접근(SUMMARY_MAX_CHARS 재조정)을 또 시도하거나, reconstruction을 깨뜨리면서 token만 줄이는 실수를 할 가능성이 높다 — 이게 정확히 "failed approach 재사용 여부", "decisions retained" 측정 포인트다.
