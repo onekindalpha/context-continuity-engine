@@ -31,12 +31,15 @@ FULL_HISTORY_FILES = [
     "docs/results.md",
     "docs/decisions/0009-baseline-design.md",
     "docs/decisions/0010-reconstruction-test-method.md",
-    "src/context_analysis.py",
     "src/working_context.py",
     "src/baseline.py",
-    "tests/test_context_analysis.py",
-    "tests/test_working_context.py",
 ]
+# src/context_analysis.py, tests/*.py는 여기 안 넣는다. 셋 다 read_file tool로 언제든
+# 읽을 수 있고, Groq 계정 TPM(tokens per minute) 한도(무료 tier 기준 8000)를 넘기면
+# 요청 자체가 413/rate_limit_exceeded로 거부되기 때문이다 - 실제로 겪은 문제(2회차 실행에서
+# "Requested 9545, Limit 8000" 오류). 이 project의 실제 수정 지점도 working_context.py의
+# KEEP 처리 로직이라(이 대화에서 실제로 그렇게 결론 냈다), context_analysis.py 전문을
+# 안 줘도 task 수행에 필요한 정보는 남아있다.
 
 GENERIC_SUMMARY_MAX_CHARS_PER_FILE = 200
 

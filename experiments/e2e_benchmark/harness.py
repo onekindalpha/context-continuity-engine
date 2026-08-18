@@ -30,10 +30,14 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+import sys
 from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(REPO_ROOT))
+
+from src.tokens import count_tokens  # noqa: E402
 EXP_DIR = Path(__file__).resolve().parent
 CONTEXTS_DIR = EXP_DIR / "contexts"
 WORKTREES_DIR = EXP_DIR / "worktrees"
@@ -195,12 +199,49 @@ def call_groq(messages: list[dict], api_key: str) -> dict:
     return _call_groq_via_urllib(body, api_key)
 
 
+MAX_READ_FILE_CHARS = 6000  # Groq 계정 TPM(무료 tier 8000) 초과를 막기 위한 상한
+SAFE_REQUEST_TOKEN_BUDGET = 6500  # 매 요청마다 이 아래로 유지 - 초기 context가 작아도
+# tool 호출이 쌓이면서 대화가 커지면 나중 round에서 똑같이 413이 날 수 있어서 매 round마다 확인한다.
+
+
+def _estimate_messages_tokens(messages: list[dict]) -> int:
+    total = 0
+    for m in messages:
+        content = m.get("content") or ""
+        if isinstance(content, str):
+            total += count_tokens(content)
+        for tc in m.get("tool_calls") or []:
+            total += count_tokens(json.dumps(tc))
+    return total
+
+
+def _trim_messages_to_budget(messages: list[dict], budget: int = SAFE_REQUEST_TOKEN_BUDGET) -> list[dict]:
+    """system(index 0)과 최초 context(index 1)는 실험 조건 자체라 항상 유지한다.
+    예산을 넘으면 가장 오래된 (assistant + 그 뒤에 딸린 tool 결과들) 묶음 단위로 통째로 지운다.
+    tool_call_id는 반드시 자신을 만든 assistant 메시지와 함께 있어야 하므로 절대 개별 메시지
+    단위로 지우면 안 된다(그러면 API가 잘못된 message sequence로 거부한다)."""
+    while _estimate_messages_tokens(messages) > budget and len(messages) > 3:
+        # index 2가 항상 그룹의 시작(assistant)이어야 정상 시퀀스다.
+        group_end = 3
+        while group_end < len(messages) and messages[group_end].get("role") == "tool":
+            group_end += 1
+        del messages[2:group_end]
+    return messages
+
+
 def execute_tool(worktree: Path, name: str, args: dict) -> str:
     if name == "read_file":
         p = _safe_path(worktree, args["path"])
         if not p.exists():
             return f"파일 없음: {args['path']}"
-        return p.read_text(encoding="utf-8")
+        content = p.read_text(encoding="utf-8")
+        if len(content) > MAX_READ_FILE_CHARS:
+            return (
+                content[:MAX_READ_FILE_CHARS]
+                + f"\n\n...[중략: 전체 {len(content)}자 중 앞 {MAX_READ_FILE_CHARS}자만 표시됨 - "
+                "TPM 한도 보호. 특정 부분이 더 필요하면 list_files로 구조를 먼저 보고 판단할 것]"
+            )
+        return content
     if name == "write_file":
         p = _safe_path(worktree, args["path"])
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -217,7 +258,7 @@ def execute_tool(worktree: Path, name: str, args: dict) -> str:
             ["python3", "-m", "unittest", "discover", "-s", "tests"],
             cwd=worktree, capture_output=True, text=True, timeout=120,
         )
-        return f"returncode={proc.returncode}\n{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}"
+        return f"returncode={proc.returncode}\n{proc.stdout[-1200:]}\n{proc.stderr[-500:]}"
     if name == "run_comparison":
         proc = subprocess.run(
             ["python3", "scripts/run_comparison.py"],
@@ -225,7 +266,7 @@ def execute_tool(worktree: Path, name: str, args: dict) -> str:
         )
         result_path = worktree / "examples/groq_model_migration_session/comparison_result.json"
         summary = result_path.read_text(encoding="utf-8") if result_path.exists() else "결과 파일 없음"
-        return f"returncode={proc.returncode}\n{proc.stdout[-500:]}\n{proc.stderr[-1000:]}\n\n결과 JSON:\n{summary[:3000]}"
+        return f"returncode={proc.returncode}\n{proc.stdout[-300:]}\n{proc.stderr[-500:]}\n\n결과 JSON:\n{summary[:1800]}"
     return f"알 수 없는 tool: {name}"
 
 
@@ -248,6 +289,7 @@ def run_condition(cond_key: str, api_key: str) -> dict[str, Any]:
 
     for round_i in range(MAX_TOOL_ROUNDS):
         rounds_used = round_i + 1
+        messages = _trim_messages_to_budget(messages)
         resp = call_groq(messages, api_key)
         usage = resp.get("usage", {})
         prompt_tokens_total += usage.get("prompt_tokens", 0)

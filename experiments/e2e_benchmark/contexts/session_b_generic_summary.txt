@@ -7,20 +7,11 @@
 === docs/decisions/0010-reconstruction-test-method.md (앞부분 200자만) ===
 # 0010. reconstruction test 판정 방법 ## 상태 확정(근사) ## 결정 고정된 7개 질문(docs/evaluation.md)에 대해, 각 context 방식이 정답 turn의 내용을 포함하는지를 기계적으로 판정한다. LLM으로 의미를 판정하지 않는다. 방법: 1. 사람이 만든 예시(`task_context_analysis.exampl...
 
-=== src/context_analysis.py (앞부분 200자만) ===
-"""Task Context Analysis: SessionLog -> ContextItem 추출 (규칙 기반 baseline). 평가 목적: LLM 없이 결정적(deterministic)으로 동작하는 첫 baseline을 만들어 schema(docs/decisions/0004, 0005)가 실제 파이프라인에서 채워질 수 있는지 검증한다. 결과는 src/v...
-
 === src/working_context.py (앞부분 200자만) ===
 """Working Context 생성: retention_action을 실제로 실행한다. 평가 목적: retention_action(KEEP/COMPRESS/EXTERNALIZE/DISCARD)이 계산만 되고 끝나면 token 절감 효과를 측정할 수 없다. 이 모듈이 판단을 실제 텍스트로 만든다. 실행 규칙: - KEEP 원본 turn 전문을 넣는다. -...
 
 === src/baseline.py (앞부분 200자만) ===
 """Baseline 방식 두 가지: recency truncation, generic summary. 평가 목적: 제안 방식(retention_action 기반 Working Context)이 실제로 더 나은지 판단하려면 비교 대상이 있어야 한다(docs/evaluation.md). task_relevance/importance 계산 없이 흔히 쓰이는 두...
-
-=== tests/test_context_analysis.py (앞부분 200자만) ===
-"""src/context_analysis.py 테스트.""" from __future__ import annotations import unittest from pathlib import Path from src.context_analysis import build_analysis, classify_turn from src.ingest import ing...
-
-=== tests/test_working_context.py (앞부분 200자만) ===
-"""src/working_context.py 테스트.""" from __future__ import annotations import unittest from src.working_context import build_working_context, turn_coverage SESSION = { "turns": [ {"turn_id": 0, "speaker...
 
 === TASK ===
 # Benchmark task (실제 미해결 과제)
