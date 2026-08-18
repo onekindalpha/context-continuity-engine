@@ -12,7 +12,9 @@ AI coding session의 context가 한계에 도달했을 때, 현재 작업에 필
 
 ## 상태
 
-`src/ingest.py` 구현됨(TXT/Markdown/JSON session log → 공통 내부 표현). 이후 단계(Task Context Analysis 등)는 미구현. 실행: `python3 -m unittest discover -s tests`
+전체 파이프라인(ingest → Task Context Analysis → Working Context → baseline 비교 → reconstruction test → token 비교)이 규칙 기반 baseline 수준으로 구현됨. 상세는 [docs/architecture.md](docs/architecture.md) 참조. 실행: `python3 -m unittest discover -s tests`
+
+비교 실행: `python3 scripts/run_comparison.py` → `examples/groq_model_migration_session/comparison_result.md`에서 실제 token/reconstruction 결과 확인.
 
 ## 예제 데이터
 

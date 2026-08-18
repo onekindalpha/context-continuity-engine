@@ -1,0 +1,265 @@
+{
+  "fixture": "groq_model_migration_session",
+  "turn_count": 20,
+  "reconstruction_test": {
+    "ground_truth_turn_ids": {
+      "현재 작업의 목표는?": [
+        2
+      ],
+      "현재 상태는?": [
+        5,
+        12,
+        18
+      ],
+      "핵심 결정은?": [
+        5,
+        6,
+        8,
+        17
+      ],
+      "결정 근거는?": [
+        2,
+        5,
+        7,
+        14,
+        15,
+        16
+      ],
+      "실패한 접근은?": [
+        7,
+        14
+      ],
+      "실패 이유는?": [
+        5,
+        6,
+        15,
+        16
+      ],
+      "다음 작업은?": [
+        19
+      ]
+    },
+    "results": {
+      "baseline_recency_truncation": {
+        "현재 작업의 목표는?": {
+          "verdict": "FAIL",
+          "matched_turn_ids": []
+        },
+        "현재 상태는?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            18
+          ]
+        },
+        "핵심 결정은?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            17
+          ]
+        },
+        "결정 근거는?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            14,
+            15,
+            16
+          ]
+        },
+        "실패한 접근은?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            14
+          ]
+        },
+        "실패 이유는?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            15,
+            16
+          ]
+        },
+        "다음 작업은?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            19
+          ]
+        }
+      },
+      "baseline_generic_summary": {
+        "현재 작업의 목표는?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            2
+          ]
+        },
+        "현재 상태는?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            5,
+            12,
+            18
+          ]
+        },
+        "핵심 결정은?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            5,
+            6,
+            8,
+            17
+          ]
+        },
+        "결정 근거는?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            2,
+            5,
+            7,
+            14,
+            15,
+            16
+          ]
+        },
+        "실패한 접근은?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            7,
+            14
+          ]
+        },
+        "실패 이유는?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            5,
+            6,
+            15,
+            16
+          ]
+        },
+        "다음 작업은?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            19
+          ]
+        }
+      },
+      "proposed_working_context": {
+        "현재 작업의 목표는?": {
+          "verdict": "FAIL",
+          "matched_turn_ids": []
+        },
+        "현재 상태는?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            18
+          ]
+        },
+        "핵심 결정은?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            6,
+            17
+          ]
+        },
+        "결정 근거는?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            7,
+            14,
+            15,
+            16
+          ]
+        },
+        "실패한 접근은?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            7,
+            14
+          ]
+        },
+        "실패 이유는?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            6,
+            15,
+            16
+          ]
+        },
+        "다음 작업은?": {
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            19
+          ]
+        }
+      }
+    },
+    "summary": {
+      "baseline_recency_truncation": {
+        "PASS": 6,
+        "RETRIEVABLE": 0,
+        "FAIL": 1,
+        "NO_GROUND_TRUTH": 0
+      },
+      "baseline_generic_summary": {
+        "PASS": 7,
+        "RETRIEVABLE": 0,
+        "FAIL": 0,
+        "NO_GROUND_TRUTH": 0
+      },
+      "proposed_working_context": {
+        "PASS": 6,
+        "RETRIEVABLE": 0,
+        "FAIL": 1,
+        "NO_GROUND_TRUTH": 0
+      }
+    }
+  },
+  "token_usage": {
+    "original_full_session": {
+      "label": "original_full_session",
+      "context_tokens": 1311,
+      "analysis_input_tokens": 0,
+      "analysis_output_tokens": 0,
+      "total_input_tokens": 1311,
+      "total_tokens": 1311,
+      "cost": null
+    },
+    "baseline_recency_truncation": {
+      "label": "baseline_recency_truncation",
+      "context_tokens": 395,
+      "analysis_input_tokens": 0,
+      "analysis_output_tokens": 0,
+      "total_input_tokens": 395,
+      "total_tokens": 395,
+      "cost": null
+    },
+    "baseline_generic_summary": {
+      "label": "baseline_generic_summary",
+      "context_tokens": 326,
+      "analysis_input_tokens": 0,
+      "analysis_output_tokens": 0,
+      "total_input_tokens": 326,
+      "total_tokens": 326,
+      "cost": null
+    },
+    "proposed_working_context": {
+      "label": "proposed_working_context",
+      "context_tokens": 581,
+      "analysis_input_tokens": 0,
+      "analysis_output_tokens": 0,
+      "total_input_tokens": 581,
+      "total_tokens": 581,
+      "cost": null
+    }
+  },
+  "proposed_action_counts": {
+    "KEEP": 6,
+    "COMPRESS": 4,
+    "EXTERNALIZE": 0,
+    "DISCARD": 4
+  },
+  "baseline_params": {
+    "recency_truncation_keep_last_n_turns": 6,
+    "generic_summary_max_chars_per_turn": 40
+  }
+}

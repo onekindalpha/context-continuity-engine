@@ -68,3 +68,34 @@ def build_working_context(
             if item["retention_action"] != "DISCARD"
         ],
     }
+
+
+def turn_coverage(analysis: dict[str, Any]) -> dict[str, Any]:
+    """analysis의 retention_action별로 turn_id를 in_context/retrievable로 나눈다.
+
+    평가 목적: reconstruction test(src/reconstruction_test.py)가 baseline과
+    같은 기준(turn_id 단위 포함 여부)으로 제안 방식을 비교할 수 있어야 한다.
+
+    분류 기준:
+    - KEEP, COMPRESS: working context 텍스트 안에 내용이 직접 들어간다
+      (COMPRESS는 요약이지만 의미는 남는다) → in_context
+    - EXTERNALIZE: 텍스트에는 참조 한 줄만 있고, 원문은 external store에
+      있다 → retrievable(즉시는 아니지만 조회하면 답변 가능)
+    - DISCARD, 그리고 애초에 ContextItem으로 추출되지 않은 turn: 아무 데도
+      없다 → 둘 다 아님
+
+    한계: 추출기가 모든 turn에 대해 ContextItem을 만들지는 않는다
+    (docs/decisions/0006 관찰된 한계 참조). ContextItem이 없는 turn은
+    이 함수 결과에 전혀 나타나지 않으며, 호출하는 쪽에서 "커버 안 됨"으로
+    처리해야 한다.
+    """
+    in_context: set[int] = set()
+    retrievable: set[int] = set()
+    for item in analysis["items"]:
+        action = item["retention_action"]
+        if action in ("KEEP", "COMPRESS"):
+            in_context.update(item["source_turn_ids"])
+        elif action == "EXTERNALIZE":
+            retrievable.update(item["source_turn_ids"])
+        # DISCARD: 아무 집합에도 넣지 않는다.
+    return {"in_context_turn_ids": in_context, "retrievable_turn_ids": retrievable}
