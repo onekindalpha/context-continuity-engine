@@ -16,6 +16,18 @@ AI coding session의 context가 한계에 도달했을 때, 현재 작업에 필
 
 비교 실행: `python3 scripts/run_comparison.py` → `examples/groq_model_migration_session/comparison_result.md`에서 실제 token/reconstruction 결과 확인.
 
+## 실제 사용법
+
+세션이 길어져서 새 세션으로 넘어가야 할 때, 그 세션 로그를 파일(.txt/.md/.json)로 저장한 뒤:
+
+```bash
+python3 -m src.cli session.txt | pbcopy   # macOS: Working Context를 클립보드로 바로 복사
+python3 -m src.cli session.txt            # 표준출력으로 텍스트 확인
+python3 -m src.cli session.txt --json     # 전체 분석 결과를 JSON으로 확인
+```
+
+새 세션 맨 앞에 붙여넣으면 된다. 요약 통계(token 감소율, retention_action 분포)는 표준에러로 따로 출력된다. 근거는 `docs/decisions/0011-single-command-cli.md` 참조.
+
 ## 예제 데이터
 
 `examples/groq_model_migration_session/` — 실제 개발 세션에서 추출한 session log. 원본 정보(session.txt/md/json)와 추출 정보(annotations.json) 구분은 해당 디렉토리의 README 참조.
