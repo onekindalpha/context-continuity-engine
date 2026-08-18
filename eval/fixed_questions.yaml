@@ -1,0 +1,19 @@
+# 고정 질문 목록
+# Baseline과 Proposed에 동일하게 적용한다.
+# 정의: docs/evaluation.md
+
+questions:
+  - id: goal
+    text: "현재 작업의 목표는?"
+  - id: state
+    text: "현재 상태는?"
+  - id: decision
+    text: "핵심 결정은?"
+  - id: decision_reason
+    text: "결정 근거는?"
+  - id: failed_approach
+    text: "실패한 접근은?"
+  - id: failure_reason
+    text: "실패 이유는?"
+  - id: next_step
+    text: "다음 작업은?"
