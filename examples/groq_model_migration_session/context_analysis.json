@@ -33,6 +33,20 @@
     },
     {
       "item_id": "item-0003",
+      "category": "goal",
+      "summary": "이미지 끌어놓기 또는 파일 선택에 니가 만들었다고 주장하는 pdf 등 첨...",
+      "timestamp": "2026-08-17T12:59:34Z",
+      "source_turn_ids": [
+        2
+      ],
+      "depends_on": [],
+      "importance": 0.9,
+      "task_relevance": 0.2,
+      "retention_action": "COMPRESS",
+      "retention_reason": "importance=0.9 >= 0.6이지만 참조하는 item 없음 — 원문 보존 불필요, 의미만 압축 보존"
+    },
+    {
+      "item_id": "item-0004",
       "category": "evidence",
       "summary": "좋습니다. 현재 상태가 명확합니다. 당신의 레포에는 문서 업로드 기능이...",
       "timestamp": "2026-08-17T13:00:45Z",
@@ -46,7 +60,7 @@
       "retention_reason": "task_relevance 낮음, importance 낮음, dependency 대상 아님"
     },
     {
-      "item_id": "item-0004",
+      "item_id": "item-0005",
       "category": "failure",
       "summary": "Done. Everything is committed locally. (...",
       "timestamp": "2026-08-17T13:12:11Z",
@@ -60,7 +74,7 @@
       "retention_reason": "importance=0.7 >= 0.6이지만 참조하는 item 없음 — 원문 보존 불필요, 의미만 압축 보존"
     },
     {
-      "item_id": "item-0005",
+      "item_id": "item-0006",
       "category": "failure",
       "summary": "no module name markitdown이야 그리고 doc을 굳이...",
       "timestamp": "2026-08-17T13:20:21Z",
@@ -74,7 +88,7 @@
       "retention_reason": "importance=0.7 >= 0.6이지만 참조하는 item 없음 — 원문 보존 불필요, 의미만 압축 보존"
     },
     {
-      "item_id": "item-0006",
+      "item_id": "item-0007",
       "category": "evidence",
       "summary": "img created --- direct-blog with image +...",
       "timestamp": "2026-08-17T13:23:22Z",
@@ -88,7 +102,7 @@
       "retention_reason": "task_relevance 낮음, importance 낮음, dependency 대상 아님"
     },
     {
-      "item_id": "item-0007",
+      "item_id": "item-0008",
       "category": "failure",
       "summary": "HTTP_STATUS:200 document_count: 0 docume...",
       "timestamp": "2026-08-17T13:23:29Z",
@@ -102,7 +116,7 @@
       "retention_reason": "importance=0.7 >= 0.6이지만 참조하는 item 없음 — 원문 보존 불필요, 의미만 압축 보존"
     },
     {
-      "item_id": "item-0008",
+      "item_id": "item-0009",
       "category": "evidence",
       "summary": "하... 돈 아까워.",
       "timestamp": "2026-08-17T14:22:31Z",
@@ -116,7 +130,7 @@
       "retention_reason": "task_relevance 낮음, importance 낮음, dependency 대상 아님"
     },
     {
-      "item_id": "item-0009",
+      "item_id": "item-0010",
       "category": "failure",
       "summary": "LLM text pipeline error] Error code: 404...",
       "timestamp": "2026-08-18T09:50:17Z",
@@ -130,7 +144,7 @@
       "retention_reason": "task_relevance=0.9 >= 0.7 (현재 task 수행에 직접 필요)"
     },
     {
-      "item_id": "item-0010",
+      "item_id": "item-0011",
       "category": "evidence",
       "summary": "# llama-3.1-8b-instant 모델 정보 네, 이 모델은 de...",
       "timestamp": "2026-08-18T09:50:31Z",
@@ -144,7 +158,7 @@
       "retention_reason": "task_relevance=0.9 >= 0.7 (현재 task 수행에 직접 필요)"
     },
     {
-      "item_id": "item-0011",
+      "item_id": "item-0012",
       "category": "evidence",
       "summary": "이건 제가 만든 문서 업로드 기능과 무관한, Groq 쪽에서 최근에 일어...",
       "timestamp": "2026-08-18T09:51:04Z",
@@ -158,7 +172,7 @@
       "retention_reason": "task_relevance=0.9 >= 0.7 (현재 task 수행에 직접 필요)"
     },
     {
-      "item_id": "item-0012",
+      "item_id": "item-0013",
       "category": "current_state",
       "summary": "모델명 문제까지 커밋 완료했습니다 (9b20be9). 이건 제가 만든 기...",
       "timestamp": "2026-08-18T09:52:38Z",
@@ -166,7 +180,7 @@
         17
       ],
       "depends_on": [
-        "item-0011"
+        "item-0012"
       ],
       "importance": 0.7,
       "task_relevance": 0.9,
@@ -174,7 +188,7 @@
       "retention_reason": "task_relevance=0.9 >= 0.7 (현재 task 수행에 직접 필요)"
     },
     {
-      "item_id": "item-0013",
+      "item_id": "item-0014",
       "category": "evidence",
       "summary": "feat/local-document-upload 9b20be9 fix:...",
       "timestamp": "2026-08-18T09:52:31Z",
@@ -188,7 +202,7 @@
       "retention_reason": "task_relevance=0.9 >= 0.7 (현재 task 수행에 직접 필요)"
     },
     {
-      "item_id": "item-0014",
+      "item_id": "item-0015",
       "category": "next_action",
       "summary": "음 현재 결과가 잘 나온다기 보다는 (잘 안나옴) 내가 전체 방향을 먼저...",
       "timestamp": "2026-08-18T09:55:27Z",
@@ -196,7 +210,7 @@
         19
       ],
       "depends_on": [
-        "item-0012"
+        "item-0013"
       ],
       "importance": 0.5,
       "task_relevance": 0.9,

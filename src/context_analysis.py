@@ -71,6 +71,7 @@ DECISION_PATTERNS = [
 GOAL_PATTERNS = [
     r"되어야",
     r"하면 되잖아",
+    r"기능이\s?없다",
 ]
 
 NEXT_ACTION_PATTERNS = [
