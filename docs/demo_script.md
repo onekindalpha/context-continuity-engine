@@ -23,20 +23,21 @@
 화면: 터미널.
 
 ```bash
-python3 scripts/run_context_analysis.py
+pip install -e .
+context-continuity-engine examples/groq_model_migration_session/session.txt --raw | pbcopy
 python3 scripts/run_comparison.py
 cat examples/groq_model_migration_session/comparison_result.md
 ```
 
 대사:
-"실제 개발 세션 20턴을 넣고 돌린 결과입니다. 원본은 1311 token인데, 저희 방식은 581 token으로 줄었습니다. 다만 이번 측정에서는 baseline 방식인 recency truncation(395 token)보다 오히려 더 많은 token을 썼습니다. 원인을 코드로 추적했고, 결과와 원인은 docs/results.md에 그대로 남겼습니다."
+"실제 개발 세션 20턴을 넣고 돌린 결과입니다. 원본은 1311 token인데, 저희 방식은 486 token으로 줄었습니다(62.9% 감소). 재구성 테스트 7문항은 전부 통과합니다. 가장 단순한 baseline인 recency truncation은 6/7만 통과하는데, 저희는 token을 조금 더 쓰는 대신(486 vs 395) 그 baseline이 놓치는 질문까지 답합니다."
 
 ### 1:40–2:20 — 정직하게 한계 설명
 
 화면: `docs/results.md`.
 
 대사:
-"이 프로젝트의 판정 기준은 저희가 직접 정했습니다. baseline보다 token이 늘거나 재구성 정확도가 낮으면 실패로 판단합니다. 지금 결과는 그 기준으로 보면 아직 baseline을 이기지 못했습니다. 원인은 두 가지입니다. 첫째, 규칙 기반 추출기가 목표/결정 category를 놓치는 경우가 있습니다. 둘째, 압축 시 요약 길이가 baseline의 절삭 길이보다 깁니다. 두 가지 모두 GitHub Issue로 등록해서 다음 개선 과제로 관리하고 있습니다."
+"다만 모든 baseline을 모든 지표에서 이긴 건 아닙니다. 모든 turn을 균일하게 짧게 자르기만 하는 또 다른 baseline(generic summary)은 재구성 품질은 저희와 동률(7/7)이면서 token은 더 적게 씁니다(326 vs 486). 이 프로젝트가 스스로 정한 판정 기준으로 보면, 지금은 '하나는 이기고 하나는 아직'이라는 게 정직한 상태입니다. 남은 원인은 규칙 기반 추출기의 정확도 한계이고, 다음 개선 과제로 GitHub Issue에 등록해 관리하고 있습니다."
 
 ### 2:20–2:50 — 저장소/테스트/거버넌스
 
@@ -47,12 +48,12 @@ python3 -m unittest discover -s tests
 ```
 
 대사:
-"테스트 75개가 모두 통과합니다. 실험적인 변경은 브랜치와 PR로 나눠서 진행했고, 각 결정은 docs/decisions/ 아래에 이유와 함께 기록해뒀습니다."
+"테스트 94개가 모두 통과합니다. 실험적인 변경은 브랜치와 PR로 나눠서 진행했고, 각 결정은 docs/decisions/ 아래에 이유와 함께 기록해뒀습니다."
 
 ### 2:50–3:00 — 마무리
 
 대사:
-"필요한 context는 남기고 불필요한 context는 줄인다는 목표에서, 지금은 baseline 대비 우위를 아직 증명하지 못한 상태입니다. 다음 단계는 요약 길이 조정과 추출기 개선입니다."
+"필요한 context는 남기고 불필요한 context는 줄인다는 목표에서, 가장 단순한 baseline 하나는 재구성 품질로 앞섰고 다른 하나는 아직입니다. 다음 단계는 규칙 기반 추출기 개선과 fixture 확대 검증입니다."
 
 ## 녹화 체크리스트
 
