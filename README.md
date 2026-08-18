@@ -8,6 +8,7 @@ AI coding session의 context가 한계에 도달했을 때, 현재 작업에 필
 - 평가 방법: [docs/evaluation.md](docs/evaluation.md)
 - 아키텍처: [docs/architecture.md](docs/architecture.md)
 - 결정 기록: [docs/decisions/](docs/decisions/)
+- 향후 확장 방향(Session Memory/Log 분리 아키텍처): [docs/decisions/0014-future-session-layer-architecture.md](docs/decisions/0014-future-session-layer-architecture.md)
 - AI 작업 규칙: [AGENTS.md](AGENTS.md)
 
 ## 상태
