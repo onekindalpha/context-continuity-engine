@@ -20,4 +20,4 @@ AI coding session의 context가 한계에 도달했을 때, 현재 작업에 필
 
 ## 라이선스
 
-MIT
+Apache 2.0
