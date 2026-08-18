@@ -1,0 +1,207 @@
+{
+  "schema_version": "1",
+  "session_id": "groq-model-migration-2026-08-17",
+  "current_task": "LLM text pipeline error] Error code: 404 - {'error': {'message': 'The model `llama-3.1-8b-instant` does not exist or you...",
+  "items": [
+    {
+      "item_id": "item-0001",
+      "category": "evidence",
+      "summary": "근데 pdf 안넣어져",
+      "timestamp": "2026-08-17T12:59:02Z",
+      "source_turn_ids": [
+        0
+      ],
+      "depends_on": [],
+      "importance": 0.4,
+      "task_relevance": 0.2,
+      "retention_action": "DISCARD",
+      "retention_reason": "task_relevance 낮음, importance 낮음, dependency 대상 아님"
+    },
+    {
+      "item_id": "item-0002",
+      "category": "failure",
+      "summary": "PDF가 안 올라간다는 게 뭐가 안 된다는 뜻입니까? A. 버튼이 없다 → 번들/패치를 아직 적용하지 않았으니 당연합니다. (기능이 아직 안 들어가 있음) B. 버튼은 있는데 선택 안 됨 → 파일 선택 창이 안 뜨는...",
+      "timestamp": "2026-08-17T12:59:11Z",
+      "source_turn_ids": [
+        1
+      ],
+      "depends_on": [],
+      "importance": 0.7,
+      "task_relevance": 0.2,
+      "retention_action": "COMPRESS",
+      "retention_reason": "importance=0.7 >= 0.6이지만 참조하는 item 없음 — 원문 보존 불필요, 의미만 압축 보존"
+    },
+    {
+      "item_id": "item-0003",
+      "category": "evidence",
+      "summary": "좋습니다. 현재 상태가 명확합니다. 당신의 레포에는 문서 업로드 기능이 없습니다. (지금 git log에 관련 commit이 없음) 지금 바로 추가하겠습니다: 1. tools/document_ingest.py — 문...",
+      "timestamp": "2026-08-17T13:00:45Z",
+      "source_turn_ids": [
+        5
+      ],
+      "depends_on": [],
+      "importance": 0.4,
+      "task_relevance": 0.2,
+      "retention_action": "DISCARD",
+      "retention_reason": "task_relevance 낮음, importance 낮음, dependency 대상 아님"
+    },
+    {
+      "item_id": "item-0004",
+      "category": "failure",
+      "summary": "Done. Everything is committed locally. (...) PDF 안 올라가던 문제 — 해결했습니다. 원인은 이전 세션의 작업이 당신의 실제 로컬 레포(~/Desktop/readme-fix-wo...",
+      "timestamp": "2026-08-17T13:12:11Z",
+      "source_turn_ids": [
+        6
+      ],
+      "depends_on": [],
+      "importance": 0.7,
+      "task_relevance": 0.2,
+      "retention_action": "COMPRESS",
+      "retention_reason": "importance=0.7 >= 0.6이지만 참조하는 item 없음 — 원문 보존 불필요, 의미만 압축 보존"
+    },
+    {
+      "item_id": "item-0005",
+      "category": "failure",
+      "summary": "no module name markitdown이야 그리고 doc을 굳이 저기에 하면 안보여. 이미지 끌어놓기 또는 파일선택할때 파일도 넣게 하면 되잖아.",
+      "timestamp": "2026-08-17T13:20:21Z",
+      "source_turn_ids": [
+        7
+      ],
+      "depends_on": [],
+      "importance": 0.7,
+      "task_relevance": 0.2,
+      "retention_action": "COMPRESS",
+      "retention_reason": "importance=0.7 >= 0.6이지만 참조하는 item 없음 — 원문 보존 불필요, 의미만 압축 보존"
+    },
+    {
+      "item_id": "item-0006",
+      "category": "evidence",
+      "summary": "img created --- direct-blog with image + document, no memo/raw_text --- HTTP_STATUS:200 image_count: 1 document_count: 1...",
+      "timestamp": "2026-08-17T13:23:22Z",
+      "source_turn_ids": [
+        10
+      ],
+      "depends_on": [],
+      "importance": 0.4,
+      "task_relevance": 0.2,
+      "retention_action": "DISCARD",
+      "retention_reason": "task_relevance 낮음, importance 낮음, dependency 대상 아님"
+    },
+    {
+      "item_id": "item-0007",
+      "category": "failure",
+      "summary": "HTTP_STATUS:200 document_count: 0 document_errors: ['fake.exe: unsupported file type: .exe (allowed: .csv, .docx, .pdf,...",
+      "timestamp": "2026-08-17T13:23:29Z",
+      "source_turn_ids": [
+        11
+      ],
+      "depends_on": [],
+      "importance": 0.7,
+      "task_relevance": 0.2,
+      "retention_action": "COMPRESS",
+      "retention_reason": "importance=0.7 >= 0.6이지만 참조하는 item 없음 — 원문 보존 불필요, 의미만 압축 보존"
+    },
+    {
+      "item_id": "item-0008",
+      "category": "evidence",
+      "summary": "하... 돈 아까워.",
+      "timestamp": "2026-08-17T14:22:31Z",
+      "source_turn_ids": [
+        13
+      ],
+      "depends_on": [],
+      "importance": 0.4,
+      "task_relevance": 0.2,
+      "retention_action": "DISCARD",
+      "retention_reason": "task_relevance 낮음, importance 낮음, dependency 대상 아님"
+    },
+    {
+      "item_id": "item-0009",
+      "category": "failure",
+      "summary": "LLM text pipeline error] Error code: 404 - {'error': {'message': 'The model `llama-3.1-8b-instant` does not exist or you...",
+      "timestamp": "2026-08-18T09:50:17Z",
+      "source_turn_ids": [
+        14
+      ],
+      "depends_on": [],
+      "importance": 0.7,
+      "task_relevance": 0.9,
+      "retention_action": "KEEP",
+      "retention_reason": "task_relevance=0.9 >= 0.7 (현재 task 수행에 직접 필요)"
+    },
+    {
+      "item_id": "item-0010",
+      "category": "evidence",
+      "summary": "# llama-3.1-8b-instant 모델 정보 네, 이 모델은 deprecated되었습니다. Deprecated 날짜: 2026년 8월 16일 대체 모델: openai/gpt-oss-20b",
+      "timestamp": "2026-08-18T09:50:31Z",
+      "source_turn_ids": [
+        15
+      ],
+      "depends_on": [],
+      "importance": 0.4,
+      "task_relevance": 0.9,
+      "retention_action": "KEEP",
+      "retention_reason": "task_relevance=0.9 >= 0.7 (현재 task 수행에 직접 필요)"
+    },
+    {
+      "item_id": "item-0011",
+      "category": "evidence",
+      "summary": "이건 제가 만든 문서 업로드 기능과 무관한, Groq 쪽에서 최근에 일어난 일입니다. 방금 확인했는데, llama-3.1-8b-instant 모델이 2026년 8월 16일자로 deprecated 됐습니다 (바로 이틀...",
+      "timestamp": "2026-08-18T09:51:04Z",
+      "source_turn_ids": [
+        16
+      ],
+      "depends_on": [],
+      "importance": 0.5,
+      "task_relevance": 0.9,
+      "retention_action": "KEEP",
+      "retention_reason": "task_relevance=0.9 >= 0.7 (현재 task 수행에 직접 필요)"
+    },
+    {
+      "item_id": "item-0012",
+      "category": "current_state",
+      "summary": "모델명 문제까지 커밋 완료했습니다 (9b20be9). 이건 제가 만든 기능 문제가 아니라 Groq가 이틀 전(8/16)에 모델을 갈아치운 것 — 대회 심사 때 다른 사람이 레포 그대로 받아서 돌려도 똑같이 터졌을 문...",
+      "timestamp": "2026-08-18T09:52:38Z",
+      "source_turn_ids": [
+        17
+      ],
+      "depends_on": [
+        "item-0011"
+      ],
+      "importance": 0.7,
+      "task_relevance": 0.9,
+      "retention_action": "KEEP",
+      "retention_reason": "task_relevance=0.9 >= 0.7 (현재 task 수행에 직접 필요)"
+    },
+    {
+      "item_id": "item-0013",
+      "category": "evidence",
+      "summary": "feat/local-document-upload 9b20be9 fix: update default Groq models (llama-3.1-8b-instant deprecated 2026-08-16) * main 9...",
+      "timestamp": "2026-08-18T09:52:31Z",
+      "source_turn_ids": [
+        18
+      ],
+      "depends_on": [],
+      "importance": 0.4,
+      "task_relevance": 0.9,
+      "retention_action": "KEEP",
+      "retention_reason": "task_relevance=0.9 >= 0.7 (현재 task 수행에 직접 필요)"
+    },
+    {
+      "item_id": "item-0014",
+      "category": "next_action",
+      "summary": "음 현재 결과가 잘 나온다기 보다는 (잘 안나옴) 내가 전체 방향을 먼저 설명하는게 나을 것 같아.",
+      "timestamp": "2026-08-18T09:55:27Z",
+      "source_turn_ids": [
+        19
+      ],
+      "depends_on": [
+        "item-0012"
+      ],
+      "importance": 0.5,
+      "task_relevance": 0.9,
+      "retention_action": "KEEP",
+      "retention_reason": "task_relevance=0.9 >= 0.7 (현재 task 수행에 직접 필요)"
+    }
+  ]
+}
