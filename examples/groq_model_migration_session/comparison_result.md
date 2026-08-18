@@ -11,13 +11,13 @@ fixture: `groq_model_migration_session`, turn 수: 20
 | original_full_session | 1311 | analysis 단계 추가 token 없음(규칙 기반, LLM 미사용) |
 | baseline_recency_truncation | 395 | analysis 단계 추가 token 없음(규칙 기반, LLM 미사용) |
 | baseline_generic_summary | 326 | analysis 단계 추가 token 없음(규칙 기반, LLM 미사용) |
-| proposed_working_context | 581 | analysis 단계 추가 token 없음(규칙 기반, LLM 미사용) |
+| proposed_working_context | 462 | analysis 단계 추가 token 없음(규칙 기반, LLM 미사용) |
 
 원본 전체 대비 감소율:
 
 - baseline_recency_truncation: 395/1311 token (69.9% 감소)
 - baseline_generic_summary: 326/1311 token (75.1% 감소)
-- proposed_working_context: 581/1311 token (55.7% 감소)
+- proposed_working_context: 462/1311 token (64.8% 감소)
 
 token 수는 근사치다(docs/decisions/0007). 절대값이 아니라 방식 간 상대 비교로만 읽는다.
 

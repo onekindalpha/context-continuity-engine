@@ -4,7 +4,7 @@
 
 - item 수: 14
 - schema validator 결과: ok=True, errors=[]
-- current_task(자동 추정, 첫 현재-episode item 요약): LLM text pipeline error] Error code: 404 - {'error': {'message': 'The model `llama-3.1-8b-instant` does not exist or you...
+- current_task(자동 추정, 첫 현재-episode item 요약): LLM text pipeline error] Error code: 404...
 
 ## item 목록
 
