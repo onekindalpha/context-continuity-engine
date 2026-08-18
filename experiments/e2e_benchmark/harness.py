@@ -157,9 +157,24 @@ class GroqRateLimitError(RuntimeError):
         self.retry_after = retry_after
 
 
+class GroqToolCallGenerationError(RuntimeError):
+    """400 tool_use_failed - 모델이 tool call 인자를 잘못된 JSON으로 생성했을 때.
+    실제로 겪은 사례: run_tests처럼 인자가 없는 함수인데도 모델이 이상한 문자열을
+    arguments로 생성해서 Groq 서버가 파싱에 실패, 요청 자체가 400으로 거부됨.
+    일시적인 생성 실패인 경우가 많아 짧게 재시도하면 넘어가는 경우가 많다."""
+
+
 def _parse_retry_after(error_text: str, default: float = 20.0) -> float:
     m = re.search(r"try again in ([0-9.]+)s", error_text)
     return float(m.group(1)) if m else default
+
+
+def _classify_error(status: int, body_text: str) -> Exception:
+    if status == 429:
+        return GroqRateLimitError(body_text, _parse_retry_after(body_text))
+    if status == 400 and "tool_use_failed" in body_text:
+        return GroqToolCallGenerationError(body_text)
+    return RuntimeError(f"Groq API 오류 {status}: {body_text}")
 
 
 def _call_groq_via_curl(body: bytes, api_key: str) -> dict:
@@ -181,10 +196,8 @@ def _call_groq_via_curl(body: bytes, api_key: str) -> dict:
     stdout = proc.stdout.decode("utf-8", errors="replace")
     body_text, _, status_str = stdout.rpartition(f"\n{marker}")
     status = int(status_str.strip()) if status_str.strip().isdigit() else 0
-    if status == 429:
-        raise GroqRateLimitError(body_text, _parse_retry_after(body_text))
     if status < 200 or status >= 300:
-        raise RuntimeError(f"Groq API 오류 {status}: {body_text} {proc.stderr.decode('utf-8', errors='replace')}")
+        raise _classify_error(status, body_text)
     return json.loads(body_text)
 
 
@@ -205,29 +218,36 @@ def _call_groq_via_urllib(body: bytes, api_key: str) -> dict:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="replace")
-        if e.code == 429:
-            raise GroqRateLimitError(detail, _parse_retry_after(detail)) from e
-        raise RuntimeError(f"Groq API 오류 {e.code}: {detail}") from e
+        raise _classify_error(e.code, detail) from e
 
 
 MAX_RATE_LIMIT_RETRIES = 6
+MAX_TOOL_GEN_RETRIES = 4
 
 
 def call_groq(messages: list[dict], api_key: str) -> dict:
     body = json.dumps(
-        {"model": GROQ_MODEL, "messages": messages, "tools": TOOLS, "tool_choice": "auto", "temperature": 0.2}
+        {"model": GROQ_MODEL, "messages": messages, "tools": TOOLS, "tool_choice": "auto", "temperature": 0.0}
     ).encode("utf-8")
     caller = _call_groq_via_curl if shutil.which("curl") else _call_groq_via_urllib
+    rate_limit_attempts = 0
+    tool_gen_attempts = 0
     last_err: Exception | None = None
-    for attempt in range(MAX_RATE_LIMIT_RETRIES):
+    while rate_limit_attempts < MAX_RATE_LIMIT_RETRIES and tool_gen_attempts < MAX_TOOL_GEN_RETRIES:
         try:
             return caller(body, api_key)
         except GroqRateLimitError as e:
+            rate_limit_attempts += 1
             wait = e.retry_after + 2
-            print(f"    (rate limit - {wait:.0f}초 대기 후 재시도 {attempt + 1}/{MAX_RATE_LIMIT_RETRIES})")
+            print(f"    (rate limit - {wait:.0f}초 대기 후 재시도 {rate_limit_attempts}/{MAX_RATE_LIMIT_RETRIES})")
             time.sleep(wait)
             last_err = e
-    raise RuntimeError(f"rate limit 재시도 {MAX_RATE_LIMIT_RETRIES}회 모두 실패: {last_err}")
+        except GroqToolCallGenerationError as e:
+            tool_gen_attempts += 1
+            print(f"    (tool call 생성 실패 - 3초 후 재시도 {tool_gen_attempts}/{MAX_TOOL_GEN_RETRIES})")
+            time.sleep(3)
+            last_err = e
+    raise RuntimeError(f"재시도 한도 초과: {last_err}")
 
 
 MAX_READ_FILE_CHARS = 6000  # Groq 계정 TPM(무료 tier 8000) 초과를 막기 위한 상한
