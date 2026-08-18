@@ -28,6 +28,14 @@ python3 -m src.cli session.txt --json     # 전체 분석 결과를 JSON으로 �
 
 새 세션 맨 앞에 붙여넣으면 된다. 요약 통계(token 감소율, retention_action 분포)는 표준에러로 따로 출력된다. 근거는 `docs/decisions/0011-single-command-cli.md` 참조.
 
+session.txt를 엄격한 형식(`[timestamp] speaker:`)으로 맞추기 번거로우면, 채팅 화면에서 그대로 복사한 텍스트에 `--raw` 옵션을 쓴다. "user: 내용", "assistant: 내용" 정도의 화자 표시만 있으면 된다.
+
+```bash
+python3 -m src.cli session.txt --raw | pbcopy
+```
+
+근거는 `docs/decisions/0012-raw-text-input.md` 참조.
+
 ## 예제 데이터
 
 `examples/groq_model_migration_session/` — 실제 개발 세션에서 추출한 session log. 원본 정보(session.txt/md/json)와 추출 정보(annotations.json) 구분은 해당 디렉토리의 README 참조.

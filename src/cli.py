@@ -20,14 +20,25 @@ from pathlib import Path
 from typing import Any
 
 from src.context_analysis import build_analysis
-from src.ingest import ingest_file
+from src.ingest import ingest_file, ingest_json
+from src.raw_text_convert import convert as convert_raw_text
 from src.tokens import count_tokens
 from src.working_context import build_working_context
 
 
-def run(path: Path) -> dict[str, Any]:
-    """session log 파일 하나를 ingest → 분석 → Working Context까지 처리한다."""
-    ingest_result = ingest_file(path)
+def run(path: Path, raw: bool = False) -> dict[str, Any]:
+    """session log 파일 하나를 ingest → 분석 → Working Context까지 처리한다.
+
+    raw=True면 엄격한 TXT/MD/JSON 형식 대신, "화자: 내용" 정도의 느슨한
+    형식(채팅 화면에서 그대로 복사한 텍스트)을 받는다(src/raw_text_convert.py).
+    """
+    if raw:
+        text = path.read_text(encoding="utf-8")
+        converted = convert_raw_text(text)
+        ingest_result = ingest_json(json.dumps(converted, ensure_ascii=False))
+    else:
+        ingest_result = ingest_file(path)
+
     if not ingest_result["ok"]:
         raise ValueError(f"ingest 실패: {ingest_result['error']}")
     session = ingest_result["session"]
@@ -66,6 +77,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Working Context 텍스트 대신 전체 분석 결과를 JSON으로 표준출력에 낸다",
     )
+    parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="엄격한 TXT/MD/JSON 형식 대신 '화자: 내용' 형식의 느슨한 텍스트를 입력으로 받는다 "
+        "(채팅 화면에서 그대로 복사한 텍스트에 적합)",
+    )
     return parser
 
 
@@ -78,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     try:
-        result = run(args.session_log)
+        result = run(args.session_log, raw=args.raw)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
