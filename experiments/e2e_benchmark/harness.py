@@ -109,7 +109,12 @@ TOOLS = [
         "function": {
             "name": "run_tests",
             "description": "python3 -m unittest discover -s tests 를 실제로 실행하고 결과를 반환한다.",
-            "parameters": {"type": "object", "properties": {}},
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {"type": "string", "description": "지금 이 tool을 호출하는 이유(한 줄, 선택)"}
+                },
+            },
         },
     },
     {
@@ -117,7 +122,12 @@ TOOLS = [
         "function": {
             "name": "run_comparison",
             "description": "python3 scripts/run_comparison.py 를 실제로 실행하고 comparison_result.json 요약을 반환한다.",
-            "parameters": {"type": "object", "properties": {}},
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {"type": "string", "description": "지금 이 tool을 호출하는 이유(한 줄, 선택)"}
+                },
+            },
         },
     },
 ]
@@ -221,8 +231,8 @@ def _call_groq_via_urllib(body: bytes, api_key: str) -> dict:
         raise _classify_error(e.code, detail) from e
 
 
-MAX_RATE_LIMIT_RETRIES = 6
-MAX_TOOL_GEN_RETRIES = 4
+MAX_RATE_LIMIT_RETRIES = 10
+MAX_TOOL_GEN_RETRIES = 8
 
 
 def call_groq(messages: list[dict], api_key: str) -> dict:
