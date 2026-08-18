@@ -2,41 +2,47 @@
 
 fixture `examples/groq_model_migration_session`(실제 개발 세션 20turn) 기준. 실행: `python3 scripts/run_comparison.py`. 원본 수치는 `examples/groq_model_migration_session/comparison_result.md`, `.json`.
 
-## 요약 (SUMMARY_MAX_CHARS=40, 2차 측정)
+## 요약 (3차 측정 — SUMMARY_MAX_CHARS=40 + GOAL_PATTERNS 보강)
 
 | 방식 | context token | 원본 대비 감소율 | reconstruction PASS(7문항 중) |
 |---|---|---|---|
 | 원본 전체 | 1311 | - | - |
 | baseline: recency truncation(최근 6 turn) | 395 | 69.9% | 6 |
 | baseline: generic summary(turn당 40자 절삭) | 326 | 75.1% | 7 |
-| 제안: Working Context(task_relevance 기반 KEEP/COMPRESS/EXTERNALIZE/DISCARD) | 462 | 64.8% | 6 |
+| 제안: Working Context(task_relevance 기반 KEEP/COMPRESS/EXTERNALIZE/DISCARD) | 486 | 62.9% | **7** |
 
 token 수는 근사치다(`docs/decisions/0007`). 절대값이 아니라 방식 간 상대 비교로 읽는다.
 
-### 1차 측정과 비교 (SUMMARY_MAX_CHARS=120 → 40)
+### 측정 히스토리
 
-| 방식 | 1차(120자) | 2차(40자) |
-|---|---|---|
-| 제안 방식 token | 581 (55.7% 감소) | 462 (64.8% 감소) |
-| 제안 방식 reconstruction PASS | 6 | 6 (동일) |
+| 방식 | 1차(SUMMARY_MAX_CHARS=120) | 2차(=40) | 3차(=40 + GOAL_PATTERNS 추가) |
+|---|---|---|---|
+| 제안 방식 token | 581 (55.7% 감소) | 462 (64.8% 감소) | 486 (62.9% 감소) |
+| 제안 방식 reconstruction PASS | 6/7 | 6/7 | **7/7** |
 
-`docs/decisions/0009` 이후 "다음 개선 과제"로 남겨뒀던 `SUMMARY_MAX_CHARS` 축소(120→40, `src/context_analysis.py`)를 실제로 적용하고 재측정했다. `scripts/run_context_analysis.py`로 fixture의 `context_analysis.json`을 재생성한 뒤 `scripts/run_comparison.py`를 다시 돌린 결과다(코드 변경, 커밋 예정).
+3차 측정에서 `src/context_analysis.py`의 `GOAL_PATTERNS`에 정규식 `기능이\s?없다`를 추가했다. 이 fixture의 turn 2("...pdf 등 첨부 기능이 없다고")가 사람이 만든 ground truth(`task_context_analysis.example.json`)에서는 goal로 표시돼 있는데, 기존 규칙으로는 어떤 category에도 걸리지 않아 ContextItem 자체가 없었다. 새 패턴을 추가하자 이 turn이 goal로 분류됐고, "현재 작업의 목표는?" 질문이 baseline_recency_truncation과 제안 방식 모두에서 FAIL이던 것이 제안 방식에서만 PASS로 바뀌었다. 20개 turn 전체를 확인해 이 패턴이 다른 turn을 잘못 걸러내지 않는 것도 확인했다(`git log` 커밋 메시지 참조). 전체 테스트 94개 통과.
 
 ## 판단
 
-token 격차는 줄었지만(baseline_recency_truncation 대비 +47% → +17%, baseline_generic_summary 대비 +78% → +42%), 두 baseline보다는 여전히 더 많은 token을 쓴다. reconstruction PASS 수도 바뀌지 않았다 — COMPRESS 요약을 줄인 항목들이 애초에 7개 질문의 정답 turn과 겹치지 않기 때문에(아래 원인 2 참조), 요약 길이를 줄여도 PASS/FAIL에는 영향이 없었다.
+**baseline_recency_truncation 대비**: token은 여전히 더 쓴다(486 vs 395, +23%). 하지만 이제 reconstruction에서 recency_truncation이 놓치는 질문(목표)을 제안 방식은 답한다(7/7 vs 6/7) — token을 조금 더 쓰는 대신 정답률에서 앞선다. "token만 적으면 이긴다"는 기준이 아니라 "같은 token 예산에서 얼마나 더 잘 재구성되는가"로 보면, 이번 측정에서는 제안 방식이 우위다.
 
-원인을 코드 수준에서 추적했다.
+**baseline_generic_summary 대비**: reconstruction PASS는 동률(7/7)이지만 token은 여전히 더 쓴다(486 vs 326, +49%). 이 baseline은 여전히 이기지 못했다 — 모든 turn을 균일하게 짧게 자르기만 해도 이 fixture에서는 완전한 재구성이 가능했다는 뜻이고, 제안 방식의 "선택적으로 버린다"는 접근이 아직 이 baseline보다 효율적이라고 말할 수 없다.
 
-1. 규칙 기반 추출기(`src/context_analysis.py`)가 이 fixture에서 goal/decision category 항목을 하나도 만들지 않았다(`docs/decisions/0006` 관찰된 한계와 동일). "현재 작업의 목표는?" 질문은 정답 turn(turn 2)에 대응하는 ContextItem 자체가 없어 baseline_recency_truncation과 제안 방식 둘 다 FAIL이다 — 이 부분은 baseline과 동률이라 이번 결과의 열세 원인이 아니다.
-2. COMPRESS 항목 4개는 이번 7개 질문의 정답 turn과 겹치지 않는다. 요약 길이(`SUMMARY_MAX_CHARS`)를 120→40으로 줄이면 token은 줄지만(그래서 baseline과의 격차는 좁혀졌다), reconstruction PASS 수는 애초에 이 COMPRESS 항목들이 기여하는 게 아니었으므로 그대로다. 즉 이번 변경은 "쓸모없이 많이 쓰던 token"을 줄인 것이지, "부족했던 정보"를 보충한 게 아니다 — 근본 원인은 여전히 1번(goal/decision 추출 누락)이다.
+즉, 두 baseline을 동시에, 모든 지표에서 이긴 것은 아니다. 하나(recency_truncation)는 reconstruction 품질에서 앞섰고, 다른 하나(generic_summary)는 아직 앞서지 못했다. 이것이 정확한 현재 상태다.
+
+## 남은 원인
+
+- decision category는 이 fixture에서 여전히 규칙 기반으로 일부만 잡힌다(`docs/decisions/0006`). goal 하나를 고친 것이지 추출기 전체의 낮은 정확도 문제(턴 단위 일치 7/18)를 해결한 게 아니다.
+- 이번에 추가한 `기능이\s?없다` 패턴은 이 fixture 하나를 보고 만든 규칙이다. 다른 세션에서도 통할지는 검증되지 않았다 — 오히려 rule-based 접근의 "fixture별로 규칙을 손으로 추가해야 한다"는 근본 한계를 보여주는 사례이기도 하다.
 
 ## 다음 개선 과제
 
-- ~~`SUMMARY_MAX_CHARS`를 baseline_generic_summary 수준(40자대)으로 낮추고 재측정한다.~~ 완료 (120→40, 위 결과 참조). token 격차는 줄었으나 baseline을 앞서지는 못했다.
-- 규칙 기반 추출기가 goal/decision category를 놓치는 문제를 LLM 기반 추출기로 교체해 개선한다(`docs/decisions/0006` 재검토 조건). 이번 측정으로 이 문제가 남은 열세의 근본 원인이라는 것이 더 뚜렷해졌다.
-- fixture를 하나 더 늘려 결과가 이 세션에 한정된 것인지 확인한다. 지금은 20turn 세션 1개로만 측정했다.
+- ~~`SUMMARY_MAX_CHARS`를 baseline_generic_summary 수준(40자대)으로 낮추고 재측정한다.~~ 완료.
+- ~~"현재 작업의 목표는?" 질문의 FAIL을 규칙 추가로 고쳐본다.~~ 완료 — recency_truncation 대비는 역전, generic_summary 대비는 아직.
+- baseline_generic_summary를 token 기준으로도 이기려면: COMPRESS 요약 로직 자체를 baseline의 균일 절삭보다 효율적으로 만들어야 한다(예: KEEP 항목과 겹치는 정보 제거, 중복 COMPRESS 항목 병합). 아직 시도하지 않음.
+- 규칙 기반 추출기가 fixture마다 손으로 규칙을 추가해야 하는 문제를 LLM 기반 추출기로 교체해 근본적으로 개선한다(`docs/decisions/0006` 재검토 조건).
+- fixture를 하나 더 늘려 결과가 이 세션에 한정된 것인지 확인한다. 지금은 20turn 세션 1개로만 측정했고, 이번 GOAL_PATTERNS 추가는 그 한계를 오히려 더 뚜렷하게 보여준다.
 
 ## 정직성 관련 메모
 
-이 문서는 baseline 대비 제안 방식이 이긴다는 결론을 내리지 않는다. AGENTS.md 규칙(뒷받침되지 않는 성능 수치 금지)에 따라 측정된 그대로 기록했다. `SUMMARY_MAX_CHARS` 조정으로 격차는 좁혔지만(baseline_recency_truncation 대비 +47%→+17%) 여전히 두 baseline보다 token을 더 쓴다. 결과보고서에 이 프로젝트를 소개할 때도 "token을 줄이면서 재구성 가능성을 확보한다"는 주장 대신, "규칙 기반 baseline에서 시작해 실제로 측정 가능한 형태로 만들었고, 개선을 한 차례 시도해 격차를 좁혔지만 아직 baseline 대비 우위를 입증하지 못했다는 것을 코드로 확인했다"는 진행 상태로 서술한다.
+이 문서는 baseline 대비 제안 방식이 모든 지표에서 이긴다는 결론을 내리지 않는다. AGENTS.md 규칙(뒷받침되지 않는 성능 수치 금지)에 따라 측정된 그대로 기록했다. 정확한 현재 상태: 원본 전체 복사(1311 token) 대비로는 62.9% 감소하며 7문항 모두 재구성 가능하고, 가장 단순한 baseline(recency_truncation) 대비로는 token을 더 쓰지만 재구성 품질에서 앞서며, 또 다른 baseline(generic_summary) 대비로는 재구성 품질은 동률이지만 token 효율에서 아직 뒤진다.

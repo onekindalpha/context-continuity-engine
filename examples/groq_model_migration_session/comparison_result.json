@@ -145,8 +145,10 @@
       },
       "proposed_working_context": {
         "현재 작업의 목표는?": {
-          "verdict": "FAIL",
-          "matched_turn_ids": []
+          "verdict": "PASS",
+          "matched_turn_ids": [
+            2
+          ]
         },
         "현재 상태는?": {
           "verdict": "PASS",
@@ -164,6 +166,7 @@
         "결정 근거는?": {
           "verdict": "PASS",
           "matched_turn_ids": [
+            2,
             7,
             14,
             15,
@@ -207,9 +210,9 @@
         "NO_GROUND_TRUTH": 0
       },
       "proposed_working_context": {
-        "PASS": 6,
+        "PASS": 7,
         "RETRIEVABLE": 0,
-        "FAIL": 1,
+        "FAIL": 0,
         "NO_GROUND_TRUTH": 0
       }
     }
@@ -244,17 +247,17 @@
     },
     "proposed_working_context": {
       "label": "proposed_working_context",
-      "context_tokens": 462,
+      "context_tokens": 486,
       "analysis_input_tokens": 0,
       "analysis_output_tokens": 0,
-      "total_input_tokens": 462,
-      "total_tokens": 462,
+      "total_input_tokens": 486,
+      "total_tokens": 486,
       "cost": null
     }
   },
   "proposed_action_counts": {
     "KEEP": 6,
-    "COMPRESS": 4,
+    "COMPRESS": 5,
     "EXTERNALIZE": 0,
     "DISCARD": 4
   },

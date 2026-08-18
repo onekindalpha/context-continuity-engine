@@ -11,13 +11,13 @@ fixture: `groq_model_migration_session`, turn 수: 20
 | original_full_session | 1311 | analysis 단계 추가 token 없음(규칙 기반, LLM 미사용) |
 | baseline_recency_truncation | 395 | analysis 단계 추가 token 없음(규칙 기반, LLM 미사용) |
 | baseline_generic_summary | 326 | analysis 단계 추가 token 없음(규칙 기반, LLM 미사용) |
-| proposed_working_context | 462 | analysis 단계 추가 token 없음(규칙 기반, LLM 미사용) |
+| proposed_working_context | 486 | analysis 단계 추가 token 없음(규칙 기반, LLM 미사용) |
 
 원본 전체 대비 감소율:
 
 - baseline_recency_truncation: 395/1311 token (69.9% 감소)
 - baseline_generic_summary: 326/1311 token (75.1% 감소)
-- proposed_working_context: 462/1311 token (64.8% 감소)
+- proposed_working_context: 486/1311 token (62.9% 감소)
 
 token 수는 근사치다(docs/decisions/0007). 절대값이 아니라 방식 간 상대 비교로만 읽는다.
 
@@ -27,7 +27,7 @@ PASS: 즉시 답변 가능(원문 또는 요약이 context에 있음) / RETRIEVA
 
 | 질문 | baseline_recency_truncation | baseline_generic_summary | proposed_working_context |
 |---|---|---|---|
-| 현재 작업의 목표는? | FAIL | PASS | FAIL |
+| 현재 작업의 목표는? | FAIL | PASS | PASS |
 | 현재 상태는? | PASS | PASS | PASS |
 | 핵심 결정은? | PASS | PASS | PASS |
 | 결정 근거는? | PASS | PASS | PASS |
@@ -41,12 +41,12 @@ PASS: 즉시 답변 가능(원문 또는 요약이 context에 있음) / RETRIEVA
 |---|---|---|---|---|
 | baseline_recency_truncation | 6 | 0 | 1 | 0 |
 | baseline_generic_summary | 7 | 0 | 0 | 0 |
-| proposed_working_context | 6 | 0 | 1 | 0 |
+| proposed_working_context | 7 | 0 | 0 | 0 |
 
 ## 제안 방식의 retention_action 분포
 
 - KEEP: 6
-- COMPRESS: 4
+- COMPRESS: 5
 - EXTERNALIZE: 0
 - DISCARD: 4
 

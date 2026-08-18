@@ -35,9 +35,9 @@ Token Comparison   (구현됨)
 
 `scripts/run_comparison.py` 실행 결과(코드 생성, 사람이 채운 값 아님). 상세는 `examples/groq_model_migration_session/comparison_result.md` 참조.
 
-이번 fixture에서 제안 방식(proposed_working_context)은 두 baseline보다 token을 더 많이 쓴다(462 vs recency 395, generic_summary 326). COMPRESS 요약 길이(`SUMMARY_MAX_CHARS`)를 120→40으로 줄여 격차는 좁혔지만(원래 581 → 462, baseline_recency_truncation 대비 +47%→+17%) 앞서지는 못했다(`docs/results.md` 참조). reconstruction test 결과(7문항 중 PASS 수)는 제안 방식과 baseline_recency_truncation이 동일했다(6/7, 같은 질문 "현재 작업의 목표는?"에서 FAIL). baseline_generic_summary가 이번 fixture에서는 token도 더 적고(326) reconstruction도 7/7 PASS로 가장 나았다.
+3차 측정(SUMMARY_MAX_CHARS=40 + GOAL_PATTERNS 보강) 기준, 제안 방식(proposed_working_context)은 여전히 두 baseline보다 token을 더 쓴다(486 vs recency 395, generic_summary 326). 하지만 reconstruction test(7문항 중 PASS 수)는 이제 7/7로, baseline_recency_truncation(6/7)을 앞서고 baseline_generic_summary(7/7)와 동률이다. 즉 가장 단순한 baseline 대비로는 "token은 조금 더 쓰지만 재구성 품질에서 앞선다"고 말할 수 있고, 가장 정교한(모든 turn을 균일 절삭하는) baseline 대비로는 아직 token 효율에서 뒤진다. 두 baseline을 동시에 모든 지표에서 이긴 것은 아니다 — 상세하고 정직한 판단은 `docs/results.md` 참조.
 
-즉 이번 측정에서는 제안 방식이 baseline보다 낫다고 말할 수 없다. 원인은 두 가지로 좁혀진다: (1) 규칙 기반 추출기가 goal/decision category를 이 fixture에서 전혀 추출하지 못함(0006), (2) COMPRESS 요약 대상 항목이 애초에 7개 질문의 정답 turn과 겹치지 않음 — 요약을 줄여도 PASS 수는 그대로였다. (1)이 남은 열세의 근본 원인이며, 다음 개선 과제로 남긴다(GitHub Issue 참조).
+원인은 두 가지로 좁혀진다: (1) 규칙 기반 추출기가 이 fixture에서 goal 하나를 제외하면 decision 등 일부 category를 여전히 놓친다(0006) — 이번에 고친 것은 fixture 하나를 보고 손으로 추가한 정규식 1개일 뿐, 추출기 전체의 정확도 문제(턴 단위 일치 7/18)를 해결한 게 아니다. (2) COMPRESS 요약이 baseline_generic_summary의 균일 절삭보다 아직 token 효율적이지 않다. 다음 개선 과제로 남긴다(GitHub Issue 참조).
 
 ## ingest 출력 schema
 
