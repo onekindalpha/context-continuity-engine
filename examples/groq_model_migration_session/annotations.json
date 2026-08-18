@@ -1,0 +1,73 @@
+{
+  "note": "추출 정보(curator annotation). ingest.py는 이 파일을 읽지 않는다. Reconstruction Test의 ground truth와 향후 Task Context Analysis 검증에 사용할 목적으로 session.json의 turn_id를 참조해 사건 유형을 표시했다.",
+  "consumed_by_ingest": false,
+  "source": "실제 개발 세션(2026-08-17 ~ 2026-08-18), context-continuity-engine 이전 단계에서 작업한 Study Documentation Agent 문서 업로드 기능 구현 세션에서 추출.",
+  "session_file": "session.json",
+  "events": [
+    {
+      "category": "user_goal",
+      "turn_ids": [2],
+      "note": "문서 업로드 기능이 기존 이미지 끌어놓기/파일 선택 UI에 통합돼 동작해야 한다는 목표를 명시."
+    },
+    {
+      "category": "initial_approach",
+      "turn_ids": [5, 6],
+      "note": "tools/document_ingest.py 신규 작성 + 별도 UI 'DOC' 버튼 추가로 구현, 커밋 8bdfda2."
+    },
+    {
+      "category": "tool_framework_usage",
+      "turn_ids": [5, 6],
+      "note": "MarkItDown 라이브러리로 PDF/DOCX/PPTX/XLSX/CSV를 Markdown으로 변환."
+    },
+    {
+      "category": "decision",
+      "turn_ids": [5, 8],
+      "note": "(1) 문서 변환 모듈 신규 추가 결정, (2) 별도 버튼 대신 기존 dropzone에 통합하기로 결정."
+    },
+    {
+      "category": "failed_approach",
+      "turn_ids": [6, 7],
+      "note": "별도 'DOC' 버튼 UI. 사용자가 실제로 보이지 않는다고 지적."
+    },
+    {
+      "category": "error",
+      "turn_ids": [7, 14],
+      "note": "(1) markitdown 모듈 미설치 오류, (2) Groq 404 model_not_found 오류."
+    },
+    {
+      "category": "root_cause",
+      "turn_ids": [15],
+      "note": "llama-3.1-8b-instant 모델이 2026-08-16자로 deprecated. 공식 문서로 확인."
+    },
+    {
+      "category": "user_feedback",
+      "turn_ids": [0, 2, 7, 13],
+      "note": "PDF 업로드 안 됨 → UI 위치 불만 → 비용 불만('돈 아까워')."
+    },
+    {
+      "category": "changed_approach",
+      "turn_ids": [8, 17],
+      "note": "(1) 문서 업로드를 기존 dropzone에 통합, (2) 기본 모델을 openai/gpt-oss-20b, qwen/qwen3.6-27b로 교체."
+    },
+    {
+      "category": "evidence",
+      "turn_ids": [4, 10, 11, 16],
+      "note": "git log 확인, curl 테스트 응답(HTTP 200, document_count), Groq 공식 문서 검색 결과."
+    },
+    {
+      "category": "validation",
+      "turn_ids": [6, 9, 10, 11, 12, 18],
+      "note": "실제 문서 업로드/삭제/오류 처리 테스트, 서버 재기동 확인, 커밋 로그로 반영 확인."
+    },
+    {
+      "category": "current_state",
+      "turn_ids": [12, 18],
+      "note": "feba752(문서 업로드 통합), 9b20be9(모델 기본값 수정) 커밋 완료 상태."
+    },
+    {
+      "category": "next_action",
+      "turn_ids": [19],
+      "note": "개별 기능 수정에서 프로젝트 전체 방향 재논의로 전환."
+    }
+  ]
+}
