@@ -42,6 +42,22 @@ class RunTest(unittest.TestCase):
         self.assertIn(f"turn {result['session']['turn_count']}개", line)
 
 
+class RunRawTest(unittest.TestCase):
+    def test_raw_flag_parses_loose_speaker_format(self) -> None:
+        tmp = REPO_ROOT / "report_work" / "_test_raw_session.txt"
+        tmp.parent.mkdir(exist_ok=True)
+        tmp.write_text(
+            "user: pdf가 안 올라가는데 어떻게 하지\nassistant: 확인해볼게요. 어떤 에러가 나나요?",
+            encoding="utf-8",
+        )
+        try:
+            result = run(tmp, raw=True)
+            self.assertEqual(result["session"]["turn_count"], 2)
+            self.assertIn("pdf", result["working_context"]["text"] + json.dumps(result["analysis"], ensure_ascii=False))
+        finally:
+            tmp.unlink(missing_ok=True)
+
+
 class MainCliTest(unittest.TestCase):
     def _run_cli(self, args: list[str]) -> subprocess.CompletedProcess:
         return subprocess.run(
