@@ -1,0 +1,9 @@
+{
+  "action_counts": {
+    "KEEP": 1,
+    "COMPRESS": 0,
+    "EXTERNALIZE": 0,
+    "DISCARD": 0
+  },
+  "warnings": []
+}

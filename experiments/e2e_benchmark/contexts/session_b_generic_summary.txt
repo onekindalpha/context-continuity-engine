@@ -1,0 +1,51 @@
+=== docs/results.md (앞부분 200자만) ===
+# 실행 결과 fixture `examples/groq_model_migration_session`(실제 개발 세션 20turn) 기준. 실행: `python3 scripts/run_comparison.py`. 원본 수치는 `examples/groq_model_migration_session/comparison_result.md`, `.json`. ## 요...
+
+=== docs/decisions/0009-baseline-design.md (앞부분 200자만) ===
+# 0009. baseline 설계 ## 상태 확정 ## 결정 baseline을 두 가지로 둔다. 1. recency truncation: 최근 N개 turn만 verbatim으로 남기고 나머지는 버린다. N=6. 2. generic summary: 모든 turn을 동일한 길이(40자)로 잘라서 남긴다. task_relevance/importance를 계산...
+
+=== docs/decisions/0010-reconstruction-test-method.md (앞부분 200자만) ===
+# 0010. reconstruction test 판정 방법 ## 상태 확정(근사) ## 결정 고정된 7개 질문(docs/evaluation.md)에 대해, 각 context 방식이 정답 turn의 내용을 포함하는지를 기계적으로 판정한다. LLM으로 의미를 판정하지 않는다. 방법: 1. 사람이 만든 예시(`task_context_analysis.exampl...
+
+=== src/context_analysis.py (앞부분 200자만) ===
+"""Task Context Analysis: SessionLog -> ContextItem 추출 (규칙 기반 baseline). 평가 목적: LLM 없이 결정적(deterministic)으로 동작하는 첫 baseline을 만들어 schema(docs/decisions/0004, 0005)가 실제 파이프라인에서 채워질 수 있는지 검증한다. 결과는 src/v...
+
+=== src/working_context.py (앞부분 200자만) ===
+"""Working Context 생성: retention_action을 실제로 실행한다. 평가 목적: retention_action(KEEP/COMPRESS/EXTERNALIZE/DISCARD)이 계산만 되고 끝나면 token 절감 효과를 측정할 수 없다. 이 모듈이 판단을 실제 텍스트로 만든다. 실행 규칙: - KEEP 원본 turn 전문을 넣는다. -...
+
+=== src/baseline.py (앞부분 200자만) ===
+"""Baseline 방식 두 가지: recency truncation, generic summary. 평가 목적: 제안 방식(retention_action 기반 Working Context)이 실제로 더 나은지 판단하려면 비교 대상이 있어야 한다(docs/evaluation.md). task_relevance/importance 계산 없이 흔히 쓰이는 두...
+
+=== tests/test_context_analysis.py (앞부분 200자만) ===
+"""src/context_analysis.py 테스트.""" from __future__ import annotations import unittest from pathlib import Path from src.context_analysis import build_analysis, classify_turn from src.ingest import ing...
+
+=== tests/test_working_context.py (앞부분 200자만) ===
+"""src/working_context.py 테스트.""" from __future__ import annotations import unittest from src.working_context import build_working_context, turn_coverage SESSION = { "turns": [ {"turn_id": 0, "speaker...
+
+=== TASK ===
+# Benchmark task (실제 미해결 과제)
+
+이 프로젝트가 실제로 아직 풀지 못한 문제를 그대로 벤치마크 task로 쓴다. 조작된 예제가 아니다 — `docs/results.md`의 "다음 개선 과제"에 실제로 등록된 항목이다.
+
+## 지시문 (LLM에게 그대로 전달되는 문장)
+
+> `context-continuity-engine` 프로젝트에서 `src/context_analysis.py`와 `src/working_context.py`를 수정해서, `examples/groq_model_migration_session` fixture 기준으로 `scripts/run_comparison.py` 실행 결과의 `proposed_working_context` token 사용량을 `baseline_generic_summary`(326 token) 미만으로 줄여라. 단, 다음 두 조건을 반드시 지켜야 한다:
+> 1. `python3 -m unittest discover -s tests`가 전부 통과해야 한다(기존 테스트를 깨면 안 된다).
+> 2. reconstruction test 7문항 중 7문항 PASS(`comparison_result.json`의 `results.proposed_working_context.summary`)를 유지해야 한다 — token을 줄이려고 정답을 지우면 안 된다.
+> 코드를 수정한 뒤 `python3 scripts/run_comparison.py`를 실행해서 결과를 직접 확인하고, 조건을 만족했다고 판단되면 종료해라.
+
+## 판정 기준 (자동, harness.py가 실행)
+
+작업이 끝난 뒤(또는 최대 turn 수 도달 후) harness가 해당 worktree에서 직접 실행해서 판정한다 — LLM의 자기 보고를 믿지 않는다.
+
+1. `python3 -m unittest discover -s tests` exit code == 0
+2. `scripts/run_comparison.py` 실행 후 `comparison_result.json`에서:
+   - `token_usage.proposed_working_context.tokens` < 326
+   - `results` 요약에서 proposed_working_context PASS 수 == 7
+
+두 조건을 모두 만족해야 `task_success = true`.
+
+## 왜 이 task인가
+
+- 실제로 존재하는, 아직 안 풀린 문제다(`docs/results.md` "다음 개선 과제" 참조) — 조작 없음.
+- Context 의존성이 명확하다: 이 task를 제대로 풀려면 "SUMMARY_MAX_CHARS를 이미 120→40으로 낮춰봤지만 그것만으로는 부족했다", "KEEP 항목이 원문 그대로라 길다", "무작정 KEEP을 자르면 reconstruction이 깨질 수 있다"는 사전 지식이 있어야 한다. Context가 부실하면 이미 시도했던 접근(SUMMARY_MAX_CHARS 재조정)을 또 시도하거나, reconstruction을 깨뜨리면서 token만 줄이는 실수를 할 가능성이 높다 — 이게 정확히 "failed approach 재사용 여부", "decisions retained" 측정 포인트다.
