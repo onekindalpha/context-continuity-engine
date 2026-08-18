@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 SCHEMA_VERSION = "1"
-SUMMARY_MAX_CHARS = 120
+SUMMARY_MAX_CHARS = 40
 
 # --- 1. turn -> category 분류 규칙 (우선순위 순서, 첫 매치 채택) ---
 

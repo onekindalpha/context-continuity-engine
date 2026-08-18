@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "context-continuity-engine"
+version = "0.1.0"
+description = "AI coding session log를 받아 다음 세션에 붙여넣을 Working Context(요약)를 만드는 CLI 도구."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = []
+
+[project.scripts]
+context-continuity-engine = "src.cli:main"
+
+[tool.setuptools]
+packages = ["src"]

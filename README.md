@@ -16,25 +16,29 @@ AI coding session의 context가 한계에 도달했을 때, 현재 작업에 필
 
 비교 실행: `python3 scripts/run_comparison.py` → `examples/groq_model_migration_session/comparison_result.md`에서 실제 token/reconstruction 결과 확인.
 
+## 설치
+
+저장소 폴더에서 한 번만:
+
+```bash
+pip install -e .
+```
+
+그러면 `context-continuity-engine` 명령이 어디서나(폴더 이동 없이) 바로 실행된다. `python3 -m src.cli` 형태로 실행해도 동일하게 동작한다(설치 없이 쓰고 싶을 때).
+
 ## 실제 사용법
 
-세션이 길어져서 새 세션으로 넘어가야 할 때, 그 세션 로그를 파일(.txt/.md/.json)로 저장한 뒤:
+세션이 길어져서 새 세션으로 넘어가야 할 때, 채팅 화면을 그대로 복사해서 파일로 저장한 뒤:
 
 ```bash
-python3 -m src.cli session.txt | pbcopy   # macOS: Working Context를 클립보드로 바로 복사
-python3 -m src.cli session.txt            # 표준출력으로 텍스트 확인
-python3 -m src.cli session.txt --json     # 전체 분석 결과를 JSON으로 확인
+context-continuity-engine session.txt --raw | pbcopy   # macOS: Working Context를 클립보드로 바로 복사
+context-continuity-engine session.txt --raw             # 표준출력으로 텍스트 확인
+context-continuity-engine session.txt --raw --json      # 전체 분석 결과를 JSON으로 확인
 ```
+
+`--raw`는 "user: 내용", "assistant: 내용" 정도의 화자 표시만 있으면 되는 느슨한 형식이다 — 채팅 화면 복사 텍스트에 그대로 쓸 수 있다(근거: `docs/decisions/0012-raw-text-input.md`). `[timestamp] speaker:` 같은 엄격한 형식으로 이미 정리된 파일이면 `--raw`를 빼도 된다.
 
 새 세션 맨 앞에 붙여넣으면 된다. 요약 통계(token 감소율, retention_action 분포)는 표준에러로 따로 출력된다. 근거는 `docs/decisions/0011-single-command-cli.md` 참조.
-
-session.txt를 엄격한 형식(`[timestamp] speaker:`)으로 맞추기 번거로우면, 채팅 화면에서 그대로 복사한 텍스트에 `--raw` 옵션을 쓴다. "user: 내용", "assistant: 내용" 정도의 화자 표시만 있으면 된다.
-
-```bash
-python3 -m src.cli session.txt --raw | pbcopy
-```
-
-근거는 `docs/decisions/0012-raw-text-input.md` 참조.
 
 ## 예제 데이터
 

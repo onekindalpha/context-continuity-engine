@@ -244,11 +244,11 @@
     },
     "proposed_working_context": {
       "label": "proposed_working_context",
-      "context_tokens": 581,
+      "context_tokens": 462,
       "analysis_input_tokens": 0,
       "analysis_output_tokens": 0,
-      "total_input_tokens": 581,
-      "total_tokens": 581,
+      "total_input_tokens": 462,
+      "total_tokens": 462,
       "cost": null
     }
   },
