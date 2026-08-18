@@ -1,0 +1,162 @@
+{
+  "note": "사람이 직접 만든 예시. LLM이나 코드가 생성하지 않았다. schema 검증 목적. docs/decisions/0004-task-context-analysis-schema.md 참조.",
+  "schema_version": "1",
+  "session_id": "groq-model-migration-2026-08-17",
+  "current_task": null,
+  "items": [
+    {
+      "item_id": "item-0001",
+      "category": "goal",
+      "summary": "문서 업로드를 기존 이미지 dropzone/파일 선택에 통합",
+      "timestamp": "2026-08-17T12:59:34Z",
+      "source_turn_ids": [2],
+      "depends_on": [],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0002",
+      "category": "evidence",
+      "summary": "git log에 문서 업로드 관련 commit 없음, 실제 레포 경로 확인(/Users/velocitygoal/Desktop/readme-fix-work/ai-study-documentation-agent)",
+      "timestamp": "2026-08-17T13:00:59Z",
+      "source_turn_ids": [4],
+      "depends_on": [],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0003",
+      "category": "current_state",
+      "summary": "문서 업로드 기능이 레포에 없는 상태",
+      "timestamp": "2026-08-17T13:00:45Z",
+      "source_turn_ids": [5],
+      "depends_on": ["item-0002"],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0004",
+      "category": "decision",
+      "summary": "tools/document_ingest.py(MarkItDown 기반) 신규 작성 + app/main.py에 별도 DOC 버튼 UI로 추가(commit 8bdfda2)",
+      "timestamp": "2026-08-17T13:12:11Z",
+      "source_turn_ids": [5, 6],
+      "depends_on": ["item-0003"],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0005",
+      "category": "failure",
+      "summary": "DOC 버튼 UI가 사용자에게 보이지 않음 + markitdown 모듈 미설치 오류('no module name markitdown')",
+      "timestamp": "2026-08-17T13:20:21Z",
+      "source_turn_ids": [7],
+      "depends_on": ["item-0004"],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0006",
+      "category": "decision",
+      "summary": "별도 DOC 버튼 대신 기존 dropzone/파일 선택 흐름에 문서 업로드 통합",
+      "timestamp": "2026-08-17T13:21:24Z",
+      "source_turn_ids": [8],
+      "depends_on": ["item-0005", "item-0001"],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0007",
+      "category": "evidence",
+      "summary": "통합된 흐름에서 문서+이미지 혼합 업로드 HTTP 200 성공, 지원 안 하는 .exe는 안전하게 에러 반환",
+      "timestamp": "2026-08-17T13:23:22Z",
+      "source_turn_ids": [10, 11],
+      "depends_on": ["item-0006"],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0008",
+      "category": "current_state",
+      "summary": "문서 업로드 dropzone 통합 완료, commit feba752",
+      "timestamp": "2026-08-17T13:24:09Z",
+      "source_turn_ids": [12],
+      "depends_on": ["item-0006", "item-0007"],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0009",
+      "category": "evidence",
+      "summary": "사용자가 비용에 불만 표현('하... 돈 아까워')",
+      "timestamp": "2026-08-17T14:22:31Z",
+      "source_turn_ids": [13],
+      "depends_on": [],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0010",
+      "category": "failure",
+      "summary": "Groq API 호출 시 404 오류, 모델 `llama-3.1-8b-instant` not found",
+      "timestamp": "2026-08-18T09:50:17Z",
+      "source_turn_ids": [14],
+      "depends_on": ["item-0011"],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0011",
+      "category": "evidence",
+      "summary": "`llama-3.1-8b-instant`가 2026-08-16자로 deprecated, 대체 모델은 openai/gpt-oss-20b(text)/qwen/qwen3.6-27b(vision), Groq 공식 문서로 확인",
+      "timestamp": "2026-08-18T09:50:31Z",
+      "source_turn_ids": [15, 16],
+      "depends_on": [],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0012",
+      "category": "decision",
+      "summary": "기본 모델을 openai/gpt-oss-20b, qwen/qwen3.6-27b로 교체(commit 9b20be9)",
+      "timestamp": "2026-08-18T09:51:04Z",
+      "source_turn_ids": [17],
+      "depends_on": ["item-0010", "item-0011"],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0013",
+      "category": "current_state",
+      "summary": "Groq 기본 모델 교체 완료, commit 9b20be9",
+      "timestamp": "2026-08-18T09:52:31Z",
+      "source_turn_ids": [18],
+      "depends_on": ["item-0012"],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    },
+    {
+      "item_id": "item-0014",
+      "category": "next_action",
+      "summary": "개별 기능 수정에서 프로젝트 전체 방향 재논의로 전환",
+      "timestamp": "2026-08-18T09:55:27Z",
+      "source_turn_ids": [19],
+      "depends_on": ["item-0013"],
+      "importance": null,
+      "task_relevance": null,
+      "retention_action": null
+    }
+  ]
+}

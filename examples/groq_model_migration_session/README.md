@@ -3,7 +3,8 @@
 ## 원본 정보와 추출 정보 구분
 
 - `session.txt`, `session.md`, `session.json` — 원본 정보. 동일한 실제 대화 내용을 세 형식으로 표현한다. 세 파일의 발화 내용은 같다(형식만 다름). ingest.py가 읽는 대상.
-- `annotations.json` — 추출 정보. 사람이 각 turn을 사건 유형(User Goal, Decision, Error 등)으로 분류한 결과. ingest.py는 이 파일을 읽지 않는다. Reconstruction Test 단계에서 ground truth로 사용할 목적으로 미리 만들어 둔다.
+- `annotations.json` — 추출 정보(분석용). 사람이 각 turn을 13개 사건 유형(User Goal, Decision, Error 등)으로 분류한 결과. ingest.py는 이 파일을 읽지 않는다. Reconstruction Test 단계에서 ground truth로 사용할 목적으로 미리 만들어 둔다.
+- `task_context_analysis.example.json` — 추출 정보(제품용). `docs/decisions/0004-task-context-analysis-schema.md`의 6개 category(goal/decision/failure/evidence/current_state/next_action) schema를 사람이 직접 채운 예시. `annotations.json`과 목적이 다르다 — 13개 사건 유형은 사람이 원본을 이해하기 위한 분석용이고, 이 파일은 이후 Keep/Compress/Externalize 단계가 실제로 입력받을 최소 구조다.
 
 ## 출처
 
