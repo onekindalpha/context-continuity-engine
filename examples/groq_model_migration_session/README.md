@@ -18,6 +18,9 @@ User Goal, Initial Approach, Tool/Framework usage, Decision, Failed Approach, Er
 
 turn_id별 매핑은 `annotations.json` 참조.
 
-## 사용 범위(오늘)
+## 생성된 파일(코드 실행 결과)
 
-`src/ingest.py`는 `session.txt` / `session.md` / `session.json`을 파싱해 공통 내부 표현으로 변환하는 것까지만 한다. `annotations.json`을 이용한 자동 평가(Task Context Analysis, Reconstruction Test)는 오늘 구현 범위에 없다.
+- `context_analysis.json`, `context_analysis.md` — `scripts/run_context_analysis.py` 실행 결과. `src/context_analysis.py`(규칙 기반 추출기)가 `session.json`에서 만든 ContextItem 목록.
+- `comparison_result.json`, `comparison_result.md` — `scripts/run_comparison.py` 실행 결과. baseline(recency truncation, generic summary)과 제안 방식(Working Context)의 token 사용량 및 reconstruction test(7개 질문) 결과 비교.
+
+이 두 쌍은 코드가 생성한다. `task_context_analysis.example.json`은 사람이 손으로 만든 것이고, reconstruction test의 정답(ground truth)으로 쓰인다 — 서로 바꿔 쓰지 않는다.

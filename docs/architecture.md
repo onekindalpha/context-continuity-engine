@@ -7,13 +7,15 @@ Session Log
   ↓
 Task Context Analysis   (구현됨 — 규칙 기반 baseline)
   ↓
-Keep / Compress / Externalize   (retention_action 결정까지 구현됨, 실행은 미구현)
+Keep / Compress / Externalize   (구현됨)
   ↓
-Working Context   (미구현)
+Working Context   (구현됨)
   ↓
-Reconstruction Test   (미구현)
+Baseline(recency truncation / generic summary)   (구현됨, 비교 대상)
   ↓
-Token Comparison   (미구현)
+Reconstruction Test   (구현됨 — 근사 판정, LLM 미사용)
+  ↓
+Token Comparison   (구현됨)
 ```
 
 ## 구현 상태
@@ -23,10 +25,19 @@ Token Comparison   (미구현)
 | Session Log ingest | `src/ingest.py` | 구현됨 |
 | schema validator | `src/validate.py` | 구현됨 |
 | Task Context Analysis(추출 + task_relevance + dependency + importance + retention_action 판단) | `src/context_analysis.py` | 구현됨(규칙 기반, LLM 미사용) |
-| Working Context 생성(retention_action 실행) | - | 미구현 |
-| Baseline(recency truncation, generic summary) | - | 미구현 |
-| Reconstruction Test | - | 미구현 |
-| Token Comparison | - | 미구현 |
+| Working Context 생성(retention_action 실행) | `src/working_context.py` | 구현됨 |
+| Baseline(recency truncation, generic summary) | `src/baseline.py` | 구현됨 |
+| Reconstruction Test | `src/reconstruction_test.py` | 구현됨(근사 판정, 0010 참조) |
+| Token Comparison | `src/tokens.py` | 구현됨(근사치, 0007 참조) |
+| 전체 비교 실행 | `scripts/run_comparison.py` | 구현됨 → `examples/groq_model_migration_session/comparison_result.md` |
+
+## baseline 대비 비교 결과 (요약)
+
+`scripts/run_comparison.py` 실행 결과(코드 생성, 사람이 채운 값 아님). 상세는 `examples/groq_model_migration_session/comparison_result.md` 참조.
+
+이번 fixture에서 제안 방식(proposed_working_context)은 baseline_recency_truncation보다 token을 더 많이 썼다(581 vs 395). 원인은 COMPRESS 요약 길이(`SUMMARY_MAX_CHARS=120`, `context_analysis.py`)가 baseline_generic_summary의 40자보다 길어서다. reconstruction test 결과(7문항 중 PASS 수)는 제안 방식과 baseline_recency_truncation이 동일했다(6/7, 같은 질문 "현재 작업의 목표는?"에서 FAIL). baseline_generic_summary가 이번 fixture에서는 token도 더 적고(326) reconstruction도 7/7 PASS로 가장 나았다.
+
+즉 이번 측정에서는 제안 방식이 baseline보다 낫다고 말할 수 없다. 원인은 두 가지로 좁혀진다: (1) 규칙 기반 추출기가 goal/decision category를 이 fixture에서 전혀 추출하지 못함(0006), (2) COMPRESS 요약이 baseline의 균일 절삭보다 짧지 않음. 다음 개선 과제로 남긴다(GitHub Issue 참조).
 
 ## ingest 출력 schema
 
