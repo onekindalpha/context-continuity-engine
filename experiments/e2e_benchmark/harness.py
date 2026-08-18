@@ -144,14 +144,38 @@ def remove_worktree(path: Path) -> None:
     subprocess.run(["git", "worktree", "remove", "--force", str(path)], cwd=REPO_ROOT, check=False)
 
 
-def call_groq(messages: list[dict], api_key: str) -> dict:
-    body = json.dumps(
-        {"model": GROQ_MODEL, "messages": messages, "tools": TOOLS, "tool_choice": "auto", "temperature": 0.2}
-    ).encode("utf-8")
+def _call_groq_via_curl(body: bytes, api_key: str) -> dict:
+    """curl로 호출한다. Cloudflare가 urllib의 TLS/UA 지문을 봇으로 오판해 1010으로
+    막는 경우가 있는데, curl은 실제 브라우저와 지문이 비슷해 이 문제를 우회할 수 있다."""
+    proc = subprocess.run(
+        [
+            "curl", "-sS", "--fail-with-body", "-X", "POST", GROQ_API_URL,
+            "-H", f"Authorization: Bearer {api_key}",
+            "-H", "Content-Type: application/json",
+            "--data-binary", "@-",
+        ],
+        input=body,
+        capture_output=True,
+        timeout=120,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"Groq API 호출 실패(curl exit {proc.returncode}): {proc.stdout.decode('utf-8', errors='replace')} "
+            f"{proc.stderr.decode('utf-8', errors='replace')}"
+        )
+    return json.loads(proc.stdout.decode("utf-8"))
+
+
+def _call_groq_via_urllib(body: bytes, api_key: str) -> dict:
     req = urllib.request.Request(
         GROQ_API_URL,
         data=body,
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "curl/8.5.0",
+        },
         method="POST",
     )
     try:
@@ -160,6 +184,15 @@ def call_groq(messages: list[dict], api_key: str) -> dict:
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"Groq API 오류 {e.code}: {detail}") from e
+
+
+def call_groq(messages: list[dict], api_key: str) -> dict:
+    body = json.dumps(
+        {"model": GROQ_MODEL, "messages": messages, "tools": TOOLS, "tool_choice": "auto", "temperature": 0.2}
+    ).encode("utf-8")
+    if shutil.which("curl"):
+        return _call_groq_via_curl(body, api_key)
+    return _call_groq_via_urllib(body, api_key)
 
 
 def execute_tool(worktree: Path, name: str, args: dict) -> str:
