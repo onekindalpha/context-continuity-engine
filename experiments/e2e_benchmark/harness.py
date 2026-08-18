@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -148,26 +149,43 @@ def remove_worktree(path: Path) -> None:
     subprocess.run(["git", "worktree", "remove", "--force", str(path)], cwd=REPO_ROOT, check=False)
 
 
+class GroqRateLimitError(RuntimeError):
+    """429 rate_limit_exceeded - 재시도로 해결 가능(TPM 롤링 윈도우가 지나면 풀림)."""
+
+    def __init__(self, message: str, retry_after: float):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+def _parse_retry_after(error_text: str, default: float = 20.0) -> float:
+    m = re.search(r"try again in ([0-9.]+)s", error_text)
+    return float(m.group(1)) if m else default
+
+
 def _call_groq_via_curl(body: bytes, api_key: str) -> dict:
     """curl로 호출한다. Cloudflare가 urllib의 TLS/UA 지문을 봇으로 오판해 1010으로
     막는 경우가 있는데, curl은 실제 브라우저와 지문이 비슷해 이 문제를 우회할 수 있다."""
+    marker = "__HTTP_STATUS__:"
     proc = subprocess.run(
         [
-            "curl", "-sS", "--fail-with-body", "-X", "POST", GROQ_API_URL,
+            "curl", "-sS", "-X", "POST", GROQ_API_URL,
             "-H", f"Authorization: Bearer {api_key}",
             "-H", "Content-Type: application/json",
             "--data-binary", "@-",
+            "-w", f"\n{marker}%{{http_code}}",
         ],
         input=body,
         capture_output=True,
         timeout=120,
     )
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f"Groq API 호출 실패(curl exit {proc.returncode}): {proc.stdout.decode('utf-8', errors='replace')} "
-            f"{proc.stderr.decode('utf-8', errors='replace')}"
-        )
-    return json.loads(proc.stdout.decode("utf-8"))
+    stdout = proc.stdout.decode("utf-8", errors="replace")
+    body_text, _, status_str = stdout.rpartition(f"\n{marker}")
+    status = int(status_str.strip()) if status_str.strip().isdigit() else 0
+    if status == 429:
+        raise GroqRateLimitError(body_text, _parse_retry_after(body_text))
+    if status < 200 or status >= 300:
+        raise RuntimeError(f"Groq API 오류 {status}: {body_text} {proc.stderr.decode('utf-8', errors='replace')}")
+    return json.loads(body_text)
 
 
 def _call_groq_via_urllib(body: bytes, api_key: str) -> dict:
@@ -187,16 +205,29 @@ def _call_groq_via_urllib(body: bytes, api_key: str) -> dict:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="replace")
+        if e.code == 429:
+            raise GroqRateLimitError(detail, _parse_retry_after(detail)) from e
         raise RuntimeError(f"Groq API 오류 {e.code}: {detail}") from e
+
+
+MAX_RATE_LIMIT_RETRIES = 6
 
 
 def call_groq(messages: list[dict], api_key: str) -> dict:
     body = json.dumps(
         {"model": GROQ_MODEL, "messages": messages, "tools": TOOLS, "tool_choice": "auto", "temperature": 0.2}
     ).encode("utf-8")
-    if shutil.which("curl"):
-        return _call_groq_via_curl(body, api_key)
-    return _call_groq_via_urllib(body, api_key)
+    caller = _call_groq_via_curl if shutil.which("curl") else _call_groq_via_urllib
+    last_err: Exception | None = None
+    for attempt in range(MAX_RATE_LIMIT_RETRIES):
+        try:
+            return caller(body, api_key)
+        except GroqRateLimitError as e:
+            wait = e.retry_after + 2
+            print(f"    (rate limit - {wait:.0f}초 대기 후 재시도 {attempt + 1}/{MAX_RATE_LIMIT_RETRIES})")
+            time.sleep(wait)
+            last_err = e
+    raise RuntimeError(f"rate limit 재시도 {MAX_RATE_LIMIT_RETRIES}회 모두 실패: {last_err}")
 
 
 MAX_READ_FILE_CHARS = 6000  # Groq 계정 TPM(무료 tier 8000) 초과를 막기 위한 상한
