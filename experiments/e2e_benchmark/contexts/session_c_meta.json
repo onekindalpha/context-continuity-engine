@@ -1,9 +1,10 @@
 {
+  "turn_count": 31,
   "action_counts": {
-    "KEEP": 1,
+    "KEEP": 20,
     "COMPRESS": 0,
-    "EXTERNALIZE": 0,
-    "DISCARD": 0
+    "EXTERNALIZE": 2,
+    "DISCARD": 1
   },
   "warnings": []
 }
