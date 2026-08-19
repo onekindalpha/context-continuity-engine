@@ -55,8 +55,15 @@ MAX_TOOL_ROUNDS = 25
 # provider 선택: LLM_PROVIDER=groq(기본) 또는 LLM_PROVIDER=gemini.
 # 둘 다 OpenAI 호환 chat/completions 형식이라 tool-calling 루프 코드는 공유한다.
 # Gemini를 추가한 이유: Groq 무료 tier가 분당 6000~8000 token으로 이 벤치마크 규모에
-# 비해 작아 재시도가 오래 걸렸다. Gemini 2.5 Flash-Lite 무료 tier는 분당 250,000 token으로
-# 훨씬 여유롭다(2026-08 기준, 웹 검색으로 확인 - 두 값 다 사용 시점에 바뀔 수 있다).
+# 비해 작아 재시도가 오래 걸렸다. Gemini Flash-Lite 계열 무료 tier는 분당 약 250,000
+# token으로 훨씬 여유롭다(2026-08 기준, 웹 검색으로 확인 - 실제 청구/한도는 언제든
+# 바뀔 수 있으니 https://ai.google.dev/pricing 로 다시 확인할 것).
+#
+# 모델명 참고: 2026-08-19 실제 실행에서 "gemini-2.5-flash-lite is no longer available
+# to new users"(404, models/gemini-3.5-flash-lite로 교체 안내) 응답을 실제로 받아서
+# 기본값을 gemini-3.5-flash-lite로 바꿨다 - 이 프로젝트의 fixture(llama-3.1-8b-instant
+# deprecated 사례)와 똑같은 종류의 문제를 우리도 그대로 겪은 것. LLM_MODEL 환경변수로
+# 언제든 다른 모델명으로 덮어쓸 수 있다.
 PROVIDER = os.environ.get("LLM_PROVIDER", "groq").lower()
 
 _PROVIDER_DEFAULTS = {
@@ -69,7 +76,7 @@ _PROVIDER_DEFAULTS = {
     },
     "gemini": {
         "api_url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-        "model": "gemini-2.5-flash-lite",
+        "model": "gemini-3.5-flash-lite",
         "api_key_env": "GEMINI_API_KEY",
         "price_input_per_1m": 0.10,
         "price_output_per_1m": 0.40,

@@ -44,6 +44,12 @@ rate-limit 에러 문구는 아직 실사용으로 확인하지 못했으므로 
 바꿔도 sandbox 안에서는 실행할 수 없다. 이 옵션 추가 시점까지도 3-way 실행 결과는 아직
 수집하지 못한 상태다 — 결과가 나오면 이 문서와 `docs/results.md`를 갱신한다.
 
+실제로 로컬에서 처음 실행했을 때(2026-08-19), `gemini-2.5-flash-lite` 모델이 "신규
+사용자에게는 더 이상 제공되지 않는다"(404, `gemini-3.5-flash-lite`로 교체 안내)는 응답을
+받았다 — 이 프로젝트의 fixture 자체가 다루는 문제(Groq `llama-3.1-8b-instant` 모델
+deprecated)와 똑같은 종류의 일을 이 벤치마크 코드 자신도 겪은 것이다. 기본 모델명을
+`gemini-3.5-flash-lite`로 바꿨다.
+
 ## 알려진 한계
 
 - `estimated_cost_usd_approx`는 하드코딩된 근사 단가 기준이다. 실제 청구액이 아니다.

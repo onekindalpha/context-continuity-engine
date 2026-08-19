@@ -21,7 +21,7 @@ CCE를 검증한다: **새 세션이 실제 코딩 task를 실제로 완수하�
   - Groq(기본값): `export GROQ_API_KEY=...` (Groq 콘솔에서 발급)
   - Gemini(대안): `export LLM_PROVIDER=gemini` + `export GEMINI_API_KEY=...` (Google AI Studio에서 발급).
     Groq 무료 tier(분당 6,000~8,000 token)가 이 벤치마크 규모에 비해 작아 재시도가 오래 걸릴 때
-    대안으로 추가했다 — Gemini 2.5 Flash-Lite 무료 tier는 분당 250,000 token으로 더 여유롭다
+    대안으로 추가했다 — Gemini Flash-Lite 계열 무료 tier는 분당 약 250,000 token으로 더 여유롭다
     (2026-08 웹 검색으로 확인한 수치, provider 정책은 바뀔 수 있다). 둘 다 OpenAI 호환
     chat/completions 형식이라 harness의 tool-calling 로직은 그대로 재사용한다.
 - Python 3.9+, 표준 라이브러리만 사용(추가 설치 불필요).
