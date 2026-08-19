@@ -2,7 +2,25 @@
 
 ## 상태
 
-harness 구현 완료(worktree 격리, tool-calling 루프, 자동 판정, 재시도 로직 전부 mock으로 검증됨). **실제 3-way 실행 결과는 수집하지 못했다** — 실행을 사용자 로컬 머신(Groq 무료 tier 계정)에서 여러 차례 시도했고 그 과정에서 실제 오류 5종(Cloudflare 1010, 413 단일 요청 초과, 429 분당 누적 초과, 400 tool_use_failed, 413 재발)을 실제로 겪고 각각 원인을 밝혀 코드로 고쳤다. 하지만 계정의 TPM(분당 8000 token) 한도 자체가 이 task 규모에 비해 너무 작아서, 재시도를 계속해도 실행이 끝까지 도는 데 오랜 시간이 걸리는 상태였다. 마감(제출 하루 전)을 고려해 여기서 실행을 중단하기로 결정했다 — harness는 남기고, 실행은 다음으로 미룬다. 이유는 아래 "왜 여기서 멈췄는가" 참조.
+**2026-08-19, 사용자 로컬 머신에서 Gemini(`gemini-3.5-flash-lite`) provider로 3-way 실행이 실제로 끝까지 완료됐다.** 아래 "실제 결과(2026-08-19)" 참조. Groq 무료 tier로는 TPM 한도 때문에 끝까지 실행하지 못했던 과거 시도(아래 "왜 여기서 멈췄는가" 참조)는 그 판단 과정을 그대로 남겨둔다 — 이후 Gemini provider를 추가해서 실제로 실행에 성공했다.
+
+harness 구현 완료(worktree 격리, tool-calling 루프, 자동 판정, 재시도 로직 전부 mock + 실제 실행으로 검증됨).
+
+## 실제 결과 (2026-08-19)
+
+fixture 1개, task 1개, 조건당 실행 1회(`gemini-3.5-flash-lite`, temperature=0.0) 기준. harness가 LLM 자기 보고가 아니라 worktree에서 직접 테스트/비교 스크립트를 실행해서 판정했다.
+
+| 조건 | task_success | tests_pass | 최종 token | reconstruction PASS | round 수 | input tokens | 소요 시간(s) |
+|---|---|---|---|---|---|---|---|
+| Session A (원본 전체) | ❌ | OK | 486 | 7/7 | 25/25 | 164,424 | 96.6 |
+| Session B (Generic Summary) | ❌ | OK | 486 | 7/7 | 25/25 | 147,734 | 110.0 |
+| Session C (CCE Working Context) | ❌ | OK | 486 | 7/7 | 25/25 | 139,102 | 61.4 |
+
+**정직한 해석**:
+
+- **세 조건 다 `task_success=false`다.** task는 "COMPRESS를 336 token 미만으로 더 줄이면서 reconstruction 7/7 유지"였는데, 세 조건 다 25라운드를 다 쓰고도 이 코드 개선 자체를 완수하지 못했다(A는 `write_file` 호출 없이 탐색만 하다 라운드를 소진했다). 즉 이 실험은 **"CCE가 다른 조건보다 실제 task를 더 잘 완수한다"는 증거를 만들지 못했다** — 세 조건 다 실패했다. AGENTS.md 규칙 7에 따라 그대로 기록한다.
+- 다만 부차적으로 관찰된 것: 같은 task, 같은 tool 예산(25라운드)에서 Session C(CCE)가 전체 세션 동안 실제로 쓴 input token이 가장 적었고(139,102 vs A 164,424 / B 147,734), 소요 시간도 가장 짧았다(61.4s vs 96.6s / 110.0s). 세 조건의 reconstruction PASS·최종 token 수치가 동일한 건 이 값들이 harness가 "지금 저장소 상태"를 재측정한 것이라 세 조건 다 코드를 안 고쳤으니 당연히 같다 — 이건 CCE의 성과가 아니다.
+- 이 "input token이 더 적게 든다"는 관찰도 실행 1회, 모델 1개 기준이라 통계적으로 확정할 수 없다(아래 "알려진 한계" 참조). 우연일 수 있다.
 
 ## 왜 여기서 멈췄는가
 
