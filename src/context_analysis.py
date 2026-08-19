@@ -26,7 +26,14 @@ SUMMARY_MAX_CHARS = 40
 
 # --- 1. turn -> category 분류 규칙 (우선순위 순서, 첫 매치 채택) ---
 
+# 아래 규칙들은 두 층으로 나뉜다:
+#   (a) fixture-specific: 최초 fixture(groq_model_migration_session)에서 관찰한 표현.
+#   (b) generic: 특정 fixture와 무관하게 개발 대화 일반에 나타나는 표현.
+# (b)를 나중에 추가한 이유는 docs/decisions/0017 참조 - e2e 벤치마크에서 새 대화를
+# 넣었을 때 assistant turn이 거의 하나도 추출되지 않는 문제가 실측으로 드러났기 때문이다.
+
 FAILURE_PATTERNS = [
+    # (a) fixture-specific
     r"error code",
     r"오류",
     r"에러",
@@ -36,6 +43,19 @@ FAILURE_PATTERNS = [
     r"not found",
     r"model_not_found",
     r"unsupported file type",
+    # (b) generic: 버그/함정/깨짐/폐기된 시도
+    r"버그",
+    r"함정",
+    r"깨졌",
+    r"깨집니다",
+    r"깨면",
+    r"안 맞습니다",
+    r"문제입니다",
+    r"빠뜨리면",
+    r"말아먹",
+    r"폐기",
+    r"버렸습니다",
+    r"잘못된",
 ]
 
 # current_state: "커밋 완료"류 표현 + git 커밋 해시(7자리 16진수 유사 문자열)가 같이 나오는 turn.
@@ -47,6 +67,7 @@ CURRENT_STATE_PATTERNS = [
 ]
 
 EVIDENCE_PATTERNS = [
+    # (a) fixture-specific
     r"http_status",
     r"deprecated",
     r"web search results",
@@ -56,9 +77,16 @@ EVIDENCE_PATTERNS = [
     r"document_count",
     r"document_errors",
     r"git log",
+    # (b) generic: 재현/실측으로 확인한 근거
+    r"재현",
+    r"확인했습니다",
+    r"돌려보니",
+    r"원인입니다",
+    r"실측",
 ]
 
 DECISION_PATTERNS = [
+    # (a) fixture-specific
     r"하기로",
     r"결정",
     r"추가하겠습니다",
@@ -66,17 +94,39 @@ DECISION_PATTERNS = [
     r"통합하겠습니다",
     r"정리하겠습니다",
     r"바꾸겠습니다",
+    # (b) generic: 방식 채택/제약 명시
+    r"채택",
+    r"방식입니다",
+    r"방법은",
+    r"하는 게 맞습니다",
+    r"반드시",
+    r"해야 합니다",
+    r"어긋나지 않습니다",
+    r"근본 해결이 아닙니다",
 ]
 
 GOAL_PATTERNS = [
+    # (a) fixture-specific
     r"되어야",
     r"하면 되잖아",
     r"기능이\s?없다",
+    # (b) generic: 사용자가 지시하는 목표
+    r"고치자",
+    r"고쳐줘",
+    r"추가해야",
+    r"해야겠네",
+    r"절대",
 ]
 
 NEXT_ACTION_PATTERNS = [
+    # (a) fixture-specific
     r"먼저 설명하는게",
     r"방향을.*설명",
+    # (b) generic: 다음 세션으로 넘기는 표현
+    r"다음에 할 일",
+    r"다음에 이어서",
+    r"다음 세션",
+    r"이어서 할",
 ]
 
 SHORT_USER_FALLBACK_MAX_CHARS = 20

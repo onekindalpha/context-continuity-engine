@@ -1,4 +1,25 @@
-[user] 그 fallback까지 반영해서 고쳐줘. 그리고 새로 테스트 하나 추가해서 이 동작(단어 경계 절삭 + 공백 없을 때 fallback)을 둘 다 검증해. 기존 테스트 전부 통과하는지도 꼭 확인하고.
+[외부 보관: item-0002 (evidence) — 필요 시 turn [4] 조회]
+[외부 보관: item-0003 (current_state) — 필요 시 turn [5] 조회]
+[assistant] 재현했습니다. src/context_analysis.py의 _make_summary가 원인입니다. collapsed[:SUMMARY_MAX_CHARS].rstrip() + "..." 이렇게 글자 수로만 자르고 있어서, 40자 경계가 단어 한가운데 떨어지면 그 단어가 잘린 채로 남습니다. "uses a longish word"를 40자에서 자르면 "uses a long"이 되고, 읽는 쪽에서는 원문에 없던 "long"이라는 단어로 오해합니다.
+[assistant] 보기 문제가 아니라 정확성 문제입니다. 이 프로젝트의 핵심 주장이 "COMPRESS된 요약만 보고도 새 세션이 이전 상태를 재구성할 수 있다"는 건데, 요약이 원문에 없는 단어를 만들어내면 그 주장 자체가 흔들립니다. reconstruction test가 PASS로 나와도 실제로는 잘못된 정보를 넘긴 셈이 됩니다.
+[user] 그럼 고치자. 어떻게 고칠 건데.
+[assistant] 40자 예산 안에서 마지막 공백 위치를 찾아 거기서 자르는 방식입니다. str.rfind(" ", 0, SUMMARY_MAX_CHARS)로 찾을 수 있고, 표준 라이브러리만 쓰는 이 프로젝트 원칙(docs/decisions/0006)에 어긋나지 않습니다.
+[assistant] textwrap.shorten을 먼저 시도해봤는데 이 용도엔 안 맞습니다. shorten은 placeholder를 포함한 전체 길이를 width에 맞추기 때문에 우리가 원하는 "본문 40자 + 별도로 붙는 ..." 규칙과 계산이 어긋나고, 빈 문자열을 돌려주는 경우도 있습니다. 실제로 돌려보니 기존 테스트 두 개가 깨졌습니다. 이 접근은 버렸습니다.
+[assistant] 하나 반드시 짚어야 할 함정이 있습니다. 원문에 공백이 아예 없는 경우입니다 - 40자가 넘는 URL 한 줄이나 긴 식별자 토큰 하나가 그렇습니다. 이때 rfind는 -1을 돌려주고, 그걸 그대로 슬라이스에 쓰면 요약이 빈 문자열이 되거나 뒤에서 잘린 엉뚱한 값이 나옵니다. 그래서 공백을 못 찾은 경우에는 반드시 기존 방식(그냥 SUMMARY_MAX_CHARS에서 자르기)으로 fallback해야 합니다. 이 fallback을 빠뜨리면 단어 경계 버그 하나를 고치면서 더 나쁜 버그를 새로 만드는 셈입니다.
+[user] 그 함정 실제로 걸린 적 있어?
+[assistant] 있습니다. 제가 처음 작성한 초안이 정확히 그 버그였습니다. rfind 결과를 검사하지 않고 그대로 썼더니, 긴 URL이 들어있는 turn의 요약이 "..." 하나만 남았습니다. 테스트로 잡히지 않았던 건 기존 테스트 fixture에 공백 없는 긴 문자열이 없었기 때문입니다.
+[user] 그럼 테스트도 같이 추가해야겠네.
+[assistant] 네. 두 가지를 검증해야 합니다. 첫째, 긴 문장을 요약했을 때 잘린 지점이 단어 경계인가(요약 본문 다음 글자가 공백이거나 원문 끝이어야 함). 둘째, 공백이 하나도 없는 긴 문자열을 넣었을 때 기존 방식대로 40자에서 잘리는가.
+[user] 짧은 텍스트는? 40자 안 넘는 거.
+[assistant] 그건 지금도 그렇고 앞으로도 원문 그대로(공백만 정규화해서) 반환해야 합니다. "..."도 붙이지 않습니다. 이 동작은 기존 테스트에 이미 있으니 깨지면 바로 드러납니다.
+[user] 기존 테스트는 몇 개야? 절대 깨면 안 돼.
+[assistant] 저장소 전체 94개입니다. python3 -m unittest discover -s tests로 전부 돌아갑니다. _make_summary를 직접 쓰는 테스트뿐 아니라 COMPRESS 결과 문자열을 비교하는 테스트들도 영향을 받을 수 있어서, 수정 후 전체를 반드시 다시 돌려야 합니다.
+[assistant] 그건 근본 해결이 아닙니다. 값을 늘려도 더 긴 문장에서 같은 문제가 그대로 재현되고, token 사용량만 늘어납니다. docs/results.md에 이미 CCE가 generic summary보다 token을 더 쓴다고 기록돼 있어서 그 수치를 더 나쁘게 만듭니다. 값은 40 그대로 두고 자르는 방식만 고치는 게 맞습니다.
+[user] 좋아. 그럼 지금 상태 정리해줘.
+[assistant] 현재 상태입니다. 버그는 재현 확인됐고 위치는 src/context_analysis.py의 _make_summary 한 곳입니다. textwrap 접근은 시도했다가 테스트가 깨져서 폐기했습니다. 채택한 방식은 rfind로 40자 이내 마지막 공백을 찾아 자르되, 공백이 없으면 기존 방식으로 fallback하는 것입니다. 아직 코드는 고치지 않았습니다.
+[user] 오늘은 여기까지 하자. 다음에 이어서 할 거 정리해줘.
+[assistant] 다음에 할 일은 세 가지입니다. 첫째, src/context_analysis.py의 _make_summary를 위 방식대로 수정합니다. 둘째, tests/test_context_analysis.py에 단어 경계 절삭과 공백 없는 경우 fallback을 각각 검증하는 테스트를 추가합니다. 셋째, python3 -m unittest discover -s tests로 94개 전체가 통과하는지 확인합니다.
+[user] 그 fallback 빠뜨리지 않게 다음 세션에 꼭 전달해줘. 그것 때문에 한 번 말아먹었으니까.
 
 === TASK ===
 # Benchmark task (실제 coding continuation task, 5~10분 규모)
