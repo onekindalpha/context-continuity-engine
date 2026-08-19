@@ -40,7 +40,8 @@ bash experiments/e2e_benchmark/run_all.sh
 ```
 
 3단계를 순서대로 실행한다: context 3종 생성 → Session A/B/C 각각 독립 git worktree에서 실제
-tool-calling 실행(각 조건당 최대 25 round) → 결과 리포트 생성.
+tool-calling 실행(각 조건당 최대 10 round, `MAX_TOOL_ROUNDS` 환경변수로 조정 가능) → 결과 리포트 생성.
+task 자체가 5~10분 규모의 작은 버그 수정으로 정의돼 있어(`task.md` 참조) 25 round는 과했다.
 
 개별 조건만 실행하려면: `python3 experiments/e2e_benchmark/harness.py --condition a` (a=원본 전체,
 b=generic summary, c=CCE Working Context).
@@ -50,12 +51,15 @@ b=generic summary, c=CCE Working Context).
 각 조건마다:
 
 1. 현재 커밋에서 독립된 `git worktree`를 만든다(서로 완전히 격리됨, 서로의 결과에 영향 없음).
-2. LLM에게 해당 조건의 context(Session A/B/C)와 task(`task.md` — 실제 미해결 과제)를 준다.
-3. LLM이 `read_file`/`write_file`/`list_files`/`run_tests`/`run_comparison` tool을 실제로
-   호출하며 `src/context_analysis.py`, `src/working_context.py`를 실제로 고친다.
+2. LLM에게 해당 조건의 context(Session A/B/C)와 task(`task.md` — `_make_summary`의 단어 경계
+   절삭 버그를 고치는 작은 실제 coding task)를 준다.
+3. LLM이 `read_file`/`write_file`/`list_files`/`run_tests` tool을 실제로 호출하며
+   `src/context_analysis.py`를 실제로 고친다.
 4. harness가 LLM의 "다 됐습니다"라는 말을 믿지 않고, worktree에서 직접
-   `python3 -m unittest discover -s tests`와 `scripts/run_comparison.py`를 실행해서
-   실제로 조건을 만족하는지 판정한다.
+   `python3 -m unittest discover -s tests`와 harness가 직접 작성한 acceptance check
+   (`harness.py`의 `run_acceptance_check` - 문자열 하드코딩이 아니라 "요약이 원문의 진짜
+   prefix인가 + word 경계에서 끊기는가"를 구조적으로 검사)를 실행해서 실제로 조건을
+   만족하는지 판정한다.
 5. 결과(성공 여부, token 사용량, tool 호출 횟수, 비용 근사치, 소요 시간)를 JSON으로 남긴다.
 
 ## 결과 읽는 법

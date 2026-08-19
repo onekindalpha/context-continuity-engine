@@ -50,7 +50,9 @@ CONTEXTS_DIR = EXP_DIR / "contexts"
 WORKTREES_DIR = EXP_DIR / "worktrees"
 RESULTS_DIR = EXP_DIR / "results"
 
-MAX_TOOL_ROUNDS = 25
+MAX_TOOL_ROUNDS = int(os.environ.get("MAX_TOOL_ROUNDS", "10"))
+# task가 작은 단일 함수 버그 수정으로 바뀌면서(task.md 참조) 25라운드는 과했다 - 5~10분
+# 안에 결정적으로 끝나는 걸 원한다는 피드백을 반영해 10으로 줄였다. 필요하면 환경변수로 조정.
 
 # provider 선택: LLM_PROVIDER=groq(기본) 또는 LLM_PROVIDER=gemini.
 # 둘 다 OpenAI 호환 chat/completions 형식이라 tool-calling 루프 코드는 공유한다.
@@ -104,7 +106,8 @@ CONDITIONS = {
 SYSTEM_PROMPT = """당신은 context-continuity-engine 저장소를 고치는 코딩 에이전트입니다.
 사용자 메시지에 이전 세션에서 이어받은 메모리(memory)와 지금 해야 할 task가 함께 들어있습니다.
 반드시 read_file로 실제 코드를 먼저 확인한 뒤에 write_file로 수정하세요. 짐작으로 고치지 마세요.
-수정 후에는 run_tests와 run_comparison을 반드시 호출해서 결과를 직접 확인하세요.
+수정 후에는 run_tests를 반드시 호출해서 기존 테스트가 전부 통과하는지 직접 확인하세요.
+이 task는 작고 구체적입니다 - 불필요하게 탐색을 반복하지 말고 빠르게 고치고 검증한 뒤 끝내세요.
 조건을 만족했다고 판단되면 tool 호출 없이 최종 메시지로 결과를 요약하고 끝내세요."""
 
 TOOLS = [
@@ -310,9 +313,17 @@ def call_llm(messages: list[dict], api_key: str) -> dict:
     raise RuntimeError(f"재시도 한도 초과: {last_err}")
 
 
-MAX_READ_FILE_CHARS = 6000  # Groq 계정 TPM(무료 tier 8000) 초과를 막기 위한 상한
-SAFE_REQUEST_TOKEN_BUDGET = 6500  # 매 요청마다 이 아래로 유지 - 초기 context가 작아도
-# tool 호출이 쌓이면서 대화가 커지면 나중 round에서 똑같이 413이 날 수 있어서 매 round마다 확인한다.
+# Groq 무료 tier(분당 6000~8000 token)는 상한을 낮게 잡아야 하고, Gemini 무료 tier(분당
+# 약 250,000 token)는 여유가 훨씬 크다. 상한이 너무 낮으면 read_file이 파일을 중간에서
+# 잘라서 반환하고, 에이전트가 그 잘린 내용을 그대로 write_file로 되돌려 쓰면 파일이 깨질
+# 위험이 있다(실제로 mock 테스트 중에 재현해서 확인함) - Gemini에서는 이 위험을 줄인다.
+if PROVIDER == "gemini":
+    MAX_READ_FILE_CHARS = 60000
+    SAFE_REQUEST_TOKEN_BUDGET = 100000
+else:
+    MAX_READ_FILE_CHARS = 6000  # Groq 계정 TPM(무료 tier 8000) 초과를 막기 위한 상한
+    SAFE_REQUEST_TOKEN_BUDGET = 6500  # 매 요청마다 이 아래로 유지 - 초기 context가 작아도
+    # tool 호출이 쌓이면서 대화가 커지면 나중 round에서 똑같이 413이 날 수 있어서 매 round마다 확인한다.
 
 
 def _estimate_messages_tokens(messages: list[dict]) -> int:
@@ -381,6 +392,74 @@ def execute_tool(worktree: Path, name: str, args: dict) -> str:
     return f"알 수 없는 tool: {name}"
 
 
+# task.md의 acceptance 기준을 harness가 직접(LLM 자기 보고 없이) 실행해서 판정하는 스크립트.
+# 문자열 하나를 하드코딩해서 exact match로 비교하지 않는다 - "요약이 원문의 진짜 prefix인가",
+# "그 prefix가 word 경계(공백 또는 문자열 끝)에서 끊기는가"를 구조적으로 확인한다. 그래야
+# 이 정확한 입력 문자열에만 맞춰 결과를 하드코딩하는 식으로는 통과할 수 없다.
+_ACCEPTANCE_SCRIPT = '''\
+import json, sys
+sys.path.insert(0, ".")
+from src.context_analysis import _make_summary, SUMMARY_MAX_CHARS
+
+
+def word_boundary_ok(original, summary, max_chars):
+    collapsed = " ".join(original.split())
+    if len(collapsed) <= max_chars:
+        return summary == collapsed, "short text should be returned unchanged"
+    if not summary.endswith("..."):
+        return False, "no ... suffix"
+    content = summary[:-3]
+    if not collapsed.startswith(content):
+        return False, "summary is not a genuine prefix of the original text"
+    if len(content) > max_chars:
+        return False, f"content longer than max_chars ({len(content)} > {max_chars})"
+    no_space_in_budget = collapsed.rfind(" ", 0, max_chars) == -1
+    if no_space_in_budget:
+        # 공백이 전혀 없으면 글자 수 fallback이 정답이다.
+        return content == collapsed[:max_chars], "no-space fallback mismatch"
+    nxt = collapsed[len(content):len(content) + 1]
+    if nxt not in ("", " "):
+        return False, f"cut mid-word (next char after summary is {nxt!r}, not a space)"
+    return True, "ok"
+
+
+results = {}
+
+# case 1: 공백이 있고, 글자 수 기준으로 자르면 실제로 단어 중간이 잘리는 입력.
+text1 = "This paragraph intentionally uses a longish nineteencharacters word here to test truncation"
+s1 = _make_summary(text1)
+ok1, why1 = word_boundary_ok(text1, s1, SUMMARY_MAX_CHARS)
+results["word_boundary_case"] = {"input": text1, "summary": s1, "pass": bool(ok1), "detail": why1}
+
+# case 2: 공백이 전혀 없는 긴 문자열 - fallback이 살아있는지 확인(빈 문자열이 되면 안 된다).
+text2 = "x" * 80
+s2 = _make_summary(text2)
+ok2, why2 = word_boundary_ok(text2, s2, SUMMARY_MAX_CHARS)
+results["no_space_fallback_case"] = {"input": text2, "summary": s2, "pass": bool(ok2), "detail": why2}
+
+results["all_pass"] = bool(results["word_boundary_case"]["pass"] and results["no_space_fallback_case"]["pass"])
+print(json.dumps(results, ensure_ascii=False))
+'''
+
+
+def run_acceptance_check(worktree: Path) -> dict[str, Any]:
+    script_path = worktree / "_bench_acceptance_check.py"
+    script_path.write_text(_ACCEPTANCE_SCRIPT, encoding="utf-8")
+    proc = subprocess.run(
+        ["python3", "_bench_acceptance_check.py"],
+        cwd=worktree, capture_output=True, text=True, timeout=30,
+    )
+    if proc.returncode != 0:
+        return {
+            "all_pass": False,
+            "error": f"acceptance script crashed (returncode={proc.returncode}): {proc.stderr[-800:]}",
+        }
+    try:
+        return json.loads(proc.stdout.strip().splitlines()[-1])
+    except (json.JSONDecodeError, IndexError) as exc:
+        return {"all_pass": False, "error": f"acceptance script output이 JSON이 아님: {exc}: {proc.stdout[-500:]}"}
+
+
 def run_condition(cond_key: str, api_key: str) -> dict[str, Any]:
     context_file, cond_name = CONDITIONS[cond_key]
     context_text = (CONTEXTS_DIR / context_file).read_text(encoding="utf-8")
@@ -434,22 +513,9 @@ def run_condition(cond_key: str, api_key: str) -> dict[str, Any]:
     )
     tests_pass = tests_proc.returncode == 0
 
-    comparison_proc = subprocess.run(
-        ["python3", "scripts/run_comparison.py"],
-        cwd=worktree, capture_output=True, text=True, timeout=120,
-    )
-    result_path = worktree / "examples/groq_model_migration_session/comparison_result.json"
-    proposed_tokens = None
-    reconstruction_pass = None
-    if result_path.exists():
-        data = json.loads(result_path.read_text(encoding="utf-8"))
-        proposed_tokens = data["token_usage"]["proposed_working_context"]["context_tokens"]
-        per_question = data["reconstruction_test"]["results"]["proposed_working_context"]
-        reconstruction_pass = sum(1 for v in per_question.values() if v["verdict"] == "PASS")
+    acceptance = run_acceptance_check(worktree)
 
-    task_success = bool(
-        tests_pass and proposed_tokens is not None and proposed_tokens < 326 and reconstruction_pass == 7
-    )
+    task_success = bool(tests_pass and acceptance["all_pass"])
 
     diff_proc = subprocess.run(
         ["git", "diff", "--stat"], cwd=worktree, capture_output=True, text=True
@@ -466,8 +532,7 @@ def run_condition(cond_key: str, api_key: str) -> dict[str, Any]:
         "model": MODEL,
         "task_success": task_success,
         "tests_pass": tests_pass,
-        "proposed_working_context_tokens": proposed_tokens,
-        "reconstruction_pass_count": reconstruction_pass,
+        "acceptance_check": acceptance,
         "rounds_used": rounds_used,
         "max_rounds": MAX_TOOL_ROUNDS,
         "tool_call_counts": tool_call_counts,

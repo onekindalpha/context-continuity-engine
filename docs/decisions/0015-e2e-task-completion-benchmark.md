@@ -6,7 +6,24 @@
 
 harness 구현 완료(worktree 격리, tool-calling 루프, 자동 판정, 재시도 로직 전부 mock + 실제 실행으로 검증됨).
 
-## 실제 결과 (2026-08-19)
+## 추가: task 재설계 (2026-08-19, 두 번째)
+
+첫 실행(아래 "실제 결과") 이후, task 자체가 "CCE가 CCE 자신을 baseline보다 효율적으로 만들어라"는
+meta-task였다는 지적을 받았다 - CCE가 CCE를 고치는 자기참조적 과제라서, "새 세션이 실제 coding을
+이어받아 완수하는가"를 보려는 원래 목적과 맞지 않았다(세 조건 다 25라운드 동안 완수 못 한 것도
+이 task 자체가 크고 모호했던 탓일 수 있다). task를 실제로 존재하는 작은 버그(`_make_summary`가
+단어 중간에서 자르는 문제, 5~10분 규모) 수정으로 다시 정의했다 - `task.md` 참조. 판정도
+`comparison_result.json` 기반에서 harness가 직접 작성한 구조적 acceptance check(문자열
+하드코딩이 아니라 "요약이 원문의 진짜 prefix인가 + 단어 경계에서 끊기는가"를 검사)로 바꿨고,
+`MAX_TOOL_ROUNDS`를 25 → 10(환경변수로 조정 가능)으로 줄였다. 정직하게 밝힐 점: Session
+C(CCE Working Context)의 memory용 예시 대화(`build_contexts.py`의 `REAL_DEV_LOG_RAW`)는 이
+벤치마크를 위해 새로 구성한 것이다 - 실제로 CCE 파이프라인에 통과시켜 봤더니, 5턴짜리 대화 중
+마지막 1턴만 KEEP되고 나머지(특히 "공백 없는 경우 fallback을 반드시 남겨둬야 한다"는 핵심 주의사항이
+담긴 turn)는 전부 버려졌다(`action_counts: {KEEP: 1, COMPRESS: 0, EXTERNALIZE: 0, DISCARD: 0}`,
+`contexts/session_c_meta.json`) - 이것도 알고리즘을 손대지 않고 나온 그대로 실행한다. 이 재설계 이후의
+실행 결과는 다음 실행 후 이 문서에 추가한다(아직 실행 전).
+
+## 실제 결과 - 1차 (2026-08-19, meta-task 버전, 위 재설계 이전)
 
 fixture 1개, task 1개, 조건당 실행 1회(`gemini-3.5-flash-lite`, temperature=0.0) 기준. harness가 LLM 자기 보고가 아니라 worktree에서 직접 테스트/비교 스크립트를 실행해서 판정했다.
 
