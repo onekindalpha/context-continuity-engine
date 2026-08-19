@@ -21,7 +21,7 @@ AI coding session이 길어지면 context가 증가한다. context가 한계에 
 
 ## 선행기술과의 관계
 
-기존 코딩 에이전트(Claude Code, Cursor, Codex CLI, Gemini CLI, GitHub Copilot, OpenCode, Aider)의 compaction은 recency 기준 또는 검증되지 않은 요약 기준으로 동작한다. 압축 전후 상태 복원 정확도를 측정하는 사례는 확인되지 않았다.
+기존 코딩 에이전트(Claude Code, Cursor, Codex CLI, Gemini CLI, GitHub Copilot, OpenCode, Aider)의 압축 기능은 제품별 내부 구현이 공개되어 있지 않아 정확한 동작 방식을 단정할 수 없다(관련 조사 기록: `docs/decisions/0016`). 이 프로젝트는 그 대신 recency truncation과 generic summary라는 두 가지 baseline을 스스로 명시적으로 정의하고, 이 baseline과 비교하는 코드를 직접 만들어 압축 전후 상태 복원 정확도와 token 사용량을 실제로 측정한다.
 
 연구 단계에서 관련 문제를 다루는 사례가 있다.
 
