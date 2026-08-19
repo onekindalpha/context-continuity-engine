@@ -1,0 +1,848 @@
+{
+  "fixture": "groq_model_migration_session",
+  "turn_count": 20,
+  "metric": "content_recall (내용어 보존율) - experiments/budget_reconstruction/content_recall.py",
+  "questions": [
+    "현재 작업의 목표는?",
+    "현재 상태는?",
+    "핵심 결정은?",
+    "결정 근거는?",
+    "실패한 접근은?",
+    "실패 이유는?",
+    "다음 작업은?"
+  ],
+  "budgets": [
+    500,
+    400,
+    326,
+    260,
+    200,
+    150,
+    100
+  ],
+  "rows": [
+    {
+      "budget_tokens": 500,
+      "generic_summary": {
+        "actual_tokens": 500,
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "PASS",
+            "recall": 0.559,
+            "matched": 33,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.42,
+            "matched": 71,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "PASS",
+            "recall": 0.539,
+            "matched": 76,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PASS",
+            "recall": 0.763,
+            "matched": 29,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.412,
+            "matched": 70,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 5,
+          "PARTIAL": 2,
+          "FAIL": 0,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.67
+      },
+      "cce_structured": {
+        "actual_tokens": 344,
+        "included_categories": [
+          "current_state",
+          "evidence",
+          "failure",
+          "goal",
+          "next_action"
+        ],
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.441,
+            "matched": 26,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.373,
+            "matched": 63,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.496,
+            "matched": 70,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PASS",
+            "recall": 0.921,
+            "matched": 35,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.429,
+            "matched": 73,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 3,
+          "PARTIAL": 4,
+          "FAIL": 0,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.666
+      }
+    },
+    {
+      "budget_tokens": 400,
+      "generic_summary": {
+        "actual_tokens": 400,
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.458,
+            "matched": 27,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.355,
+            "matched": 60,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.468,
+            "matched": 66,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PASS",
+            "recall": 0.684,
+            "matched": 26,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.335,
+            "matched": 57,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PASS",
+            "recall": 0.917,
+            "matched": 11,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 3,
+          "PARTIAL": 4,
+          "FAIL": 0,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.602
+      },
+      "cce_structured": {
+        "actual_tokens": 344,
+        "included_categories": [
+          "current_state",
+          "evidence",
+          "failure",
+          "goal",
+          "next_action"
+        ],
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.441,
+            "matched": 26,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.373,
+            "matched": 63,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.496,
+            "matched": 70,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PASS",
+            "recall": 0.921,
+            "matched": 35,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.429,
+            "matched": 73,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 3,
+          "PARTIAL": 4,
+          "FAIL": 0,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.666
+      }
+    },
+    {
+      "budget_tokens": 326,
+      "generic_summary": {
+        "actual_tokens": 326,
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 0.917,
+            "matched": 11,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.407,
+            "matched": 24,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.314,
+            "matched": 53,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.418,
+            "matched": 59,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PASS",
+            "recall": 0.605,
+            "matched": 23,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.3,
+            "matched": 51,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PASS",
+            "recall": 0.75,
+            "matched": 9,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 3,
+          "PARTIAL": 4,
+          "FAIL": 0,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.53
+      },
+      "cce_structured": {
+        "actual_tokens": 324,
+        "included_categories": [
+          "current_state",
+          "evidence",
+          "failure",
+          "goal",
+          "next_action"
+        ],
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.441,
+            "matched": 26,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.367,
+            "matched": 62,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.461,
+            "matched": 65,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PASS",
+            "recall": 0.789,
+            "matched": 30,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.429,
+            "matched": 73,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 3,
+          "PARTIAL": 4,
+          "FAIL": 0,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.641
+      }
+    },
+    {
+      "budget_tokens": 260,
+      "generic_summary": {
+        "actual_tokens": 260,
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 0.75,
+            "matched": 9,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.356,
+            "matched": 21,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.278,
+            "matched": 47,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.348,
+            "matched": 49,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PASS",
+            "recall": 0.526,
+            "matched": 20,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.247,
+            "matched": 42,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PASS",
+            "recall": 0.5,
+            "matched": 6,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 3,
+          "PARTIAL": 4,
+          "FAIL": 0,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.429
+      },
+      "cce_structured": {
+        "actual_tokens": 256,
+        "included_categories": [
+          "current_state",
+          "evidence",
+          "failure",
+          "goal",
+          "next_action"
+        ],
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.339,
+            "matched": 20,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.29,
+            "matched": 49,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.433,
+            "matched": 61,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PASS",
+            "recall": 0.684,
+            "matched": 26,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.341,
+            "matched": 58,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 3,
+          "PARTIAL": 4,
+          "FAIL": 0,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.584
+      }
+    },
+    {
+      "budget_tokens": 200,
+      "generic_summary": {
+        "actual_tokens": 195,
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 0.583,
+            "matched": 7,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.22,
+            "matched": 13,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.219,
+            "matched": 37,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.248,
+            "matched": 35,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.395,
+            "matched": 15,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "FAIL",
+            "recall": 0.176,
+            "matched": 30,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.333,
+            "matched": 4,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 1,
+          "PARTIAL": 5,
+          "FAIL": 1,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.311
+      },
+      "cce_structured": {
+        "actual_tokens": 193,
+        "included_categories": [
+          "current_state",
+          "failure",
+          "goal",
+          "next_action"
+        ],
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "FAIL",
+            "recall": 0.153,
+            "matched": 9,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.231,
+            "matched": 39,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.312,
+            "matched": 44,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PASS",
+            "recall": 0.658,
+            "matched": 25,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.212,
+            "matched": 36,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 3,
+          "PARTIAL": 3,
+          "FAIL": 1,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.509
+      }
+    },
+    {
+      "budget_tokens": 150,
+      "generic_summary": {
+        "actual_tokens": 149,
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.417,
+            "matched": 5,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "FAIL",
+            "recall": 0.153,
+            "matched": 9,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "FAIL",
+            "recall": 0.148,
+            "matched": 25,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "FAIL",
+            "recall": 0.163,
+            "matched": 23,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.263,
+            "matched": 10,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "FAIL",
+            "recall": 0.118,
+            "matched": 20,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "FAIL",
+            "recall": 0.167,
+            "matched": 2,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 0,
+          "PARTIAL": 2,
+          "FAIL": 5,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.204
+      },
+      "cce_structured": {
+        "actual_tokens": 150,
+        "included_categories": [
+          "current_state",
+          "failure",
+          "goal",
+          "next_action"
+        ],
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "FAIL",
+            "recall": 0.136,
+            "matched": 8,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.213,
+            "matched": 36,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "FAIL",
+            "recall": 0.199,
+            "matched": 28,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "PARTIAL",
+            "recall": 0.237,
+            "matched": 9,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "PARTIAL",
+            "recall": 0.2,
+            "matched": 34,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 2,
+          "PARTIAL": 3,
+          "FAIL": 2,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.426
+      }
+    },
+    {
+      "budget_tokens": 100,
+      "generic_summary": {
+        "actual_tokens": 98,
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "FAIL",
+            "recall": 0.167,
+            "matched": 2,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "FAIL",
+            "recall": 0.068,
+            "matched": 4,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "FAIL",
+            "recall": 0.089,
+            "matched": 15,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "FAIL",
+            "recall": 0.085,
+            "matched": 12,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "FAIL",
+            "recall": 0.105,
+            "matched": 4,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "FAIL",
+            "recall": 0.071,
+            "matched": 12,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "FAIL",
+            "recall": 0.083,
+            "matched": 1,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 0,
+          "PARTIAL": 0,
+          "FAIL": 7,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.095
+      },
+      "cce_structured": {
+        "actual_tokens": 93,
+        "included_categories": [
+          "current_state",
+          "failure",
+          "goal",
+          "next_action"
+        ],
+        "per_question": {
+          "현재 작업의 목표는?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          },
+          "현재 상태는?": {
+            "verdict": "FAIL",
+            "recall": 0.085,
+            "matched": 5,
+            "total": 59
+          },
+          "핵심 결정은?": {
+            "verdict": "FAIL",
+            "recall": 0.107,
+            "matched": 18,
+            "total": 169
+          },
+          "결정 근거는?": {
+            "verdict": "FAIL",
+            "recall": 0.149,
+            "matched": 21,
+            "total": 141
+          },
+          "실패한 접근은?": {
+            "verdict": "FAIL",
+            "recall": 0.105,
+            "matched": 4,
+            "total": 38
+          },
+          "실패 이유는?": {
+            "verdict": "FAIL",
+            "recall": 0.094,
+            "matched": 16,
+            "total": 170
+          },
+          "다음 작업은?": {
+            "verdict": "PASS",
+            "recall": 1.0,
+            "matched": 12,
+            "total": 12
+          }
+        },
+        "counts": {
+          "PASS": 2,
+          "PARTIAL": 0,
+          "FAIL": 5,
+          "NO_GROUND_TRUTH": 0
+        },
+        "mean_recall": 0.363
+      }
+    }
+  ]
+}
