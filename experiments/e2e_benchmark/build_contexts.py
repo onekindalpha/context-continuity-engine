@@ -2,7 +2,8 @@
 
 Session A (full_history): 관련 문서/코드/테스트 전문을 그대로 이어붙인 것 - 아무 판단 없이 전부.
 Session B (generic_summary): 각 파일을 앞부분 N자로만 균일하게 자른 것 - baseline.generic_summary와 같은 사상.
-Session C (cce_working_context): 이 대화에서 실제로 오간 token-efficiency 논의를 turn 단위로 옮겨 적은 뒤,
+Session C (cce_working_context): 아래 REAL_DEV_LOG_RAW(이 task를 다루는 가상의 이전 세션 대화 -
+    실제로 이 벤치마크를 위해 구성했다. 이 대화 자체의 축어적 기록이 아니다 - 정직하게 밝혀둔다)를
     이 프로젝트 자신의 --raw 파이프라인에 그대로 통과시켜 만든 실제 Working Context 출력.
 
 세 조건 모두 마지막에 동일한 task 지시문(task.md)을 이어붙인다 - context만 다르고 task는 같아야
@@ -28,35 +29,31 @@ from src.raw_text_convert import convert as convert_raw_text  # noqa: E402
 OUT_DIR = Path(__file__).resolve().parent / "contexts"
 
 FULL_HISTORY_FILES = [
-    "docs/results.md",
-    "docs/decisions/0009-baseline-design.md",
-    "docs/decisions/0010-reconstruction-test-method.md",
-    "src/working_context.py",
-    "src/baseline.py",
+    "src/context_analysis.py",
+    "tests/test_context_analysis.py",
+    "docs/decisions/0006-rule-based-extractor-baseline.md",
 ]
-# src/context_analysis.py, tests/*.py는 여기 안 넣는다. 셋 다 read_file tool로 언제든
-# 읽을 수 있고, Groq 계정 TPM(tokens per minute) 한도(무료 tier 기준 8000)를 넘기면
-# 요청 자체가 413/rate_limit_exceeded로 거부되기 때문이다 - 실제로 겪은 문제(2회차 실행에서
-# "Requested 9545, Limit 8000" 오류). 이 project의 실제 수정 지점도 working_context.py의
-# KEEP 처리 로직이라(이 대화에서 실제로 그렇게 결론 냈다), context_analysis.py 전문을
-# 안 줘도 task 수행에 필요한 정보는 남아있다.
+# task가 "_make_summary의 단어 경계 절삭 버그를 고쳐라"로 바뀌면서(task.md 참조), 이 task와
+# 직접 관련된 파일로 교체했다: 고칠 파일 자체, 기존 테스트 패턴(비슷한 테스트를 어떻게
+# 써왔는지), 그리고 "summary는 원문 앞부분을 잘라낸 값"이라는 기존 한계를 명시한 결정 문서.
+# Gemini(LLM_PROVIDER=gemini) 무료 tier가 분당 250,000 token으로 Groq보다 여유로워
+# 이전처럼 파일 수를 극단적으로 줄일 필요는 없지만, 그래도 task와 무관한 파일은 넣지 않는다.
 
 GENERIC_SUMMARY_MAX_CHARS_PER_FILE = 200
 
 TASK_INSTRUCTION = (Path(__file__).resolve().parent / "task.md").read_text(encoding="utf-8")
 
-# 이 대화에서 실제로 오간, token-efficiency 관련 논의를 turn 단위로 옮겨 적은 것.
-# 요약/각색이 아니라 실제 conversation 내용을 그대로 옮긴 것 - CCE가 raw 입력으로 받는
-# "채팅 화면을 그대로 복사한 텍스트"에 해당한다.
+# 이 benchmark를 위해 구성한 예시 대화다 - task.md의 실제 버그(_make_summary의 단어 경계
+# 절삭)를 발견하고 고치기로 결정하는 과정을 담았다. 실제 개발 논의를 반영해서 만들었지만,
+# "이 대화"(session 전체) 자체의 축어적 transcript는 아니다 - 정직하게 밝혀둔다. CCE가
+# raw 입력으로 받는 "채팅 화면을 그대로 복사한 텍스트" 형식과 동일한 형태로 작성했다.
 REAL_DEV_LOG_RAW = """\
-user: 결과보고서에 토큰 효율성이 한계라고 했나? 고칠 방법은 없는거야?
-assistant: SUMMARY_MAX_CHARS를 120에서 40으로 줄이는 개선을 이미 시도했습니다. 결과: 제안 방식 token이 581에서 462로 줄었고, baseline_recency_truncation과의 격차가 47%에서 17%로 좁혀졌습니다. 하지만 baseline_generic_summary(326 token)보다는 여전히 많이 씁니다.
-assistant: 원인을 코드로 추적했습니다. src/working_context.py에서 KEEP action은 원본 turn 전문을 그대로 넣습니다(자르지 않음). 반면 baseline_generic_summary는 모든 turn을 예외 없이 40자로 자릅니다. KEEP 항목이 길면 거기서 baseline보다 token을 더 쓰게 됩니다.
-user: 그럼 KEEP도 자르면 되는거 아니야?
-assistant: 가능하지만 위험이 있습니다. 지금 reconstruction test가 7/7 PASS인 이유 중 하나가 "KEEP 항목은 원문 그대로 유지한다"는 규칙 덕분일 수 있습니다. KEEP 텍스트를 무작정 자르면 정답이 되는 문장이 잘려나가서 다시 FAIL이 늘어날 위험이 있습니다.
-assistant: 이전에 SUMMARY_MAX_CHARS만 조정했을 때는 reconstruction PASS 수가 그대로였습니다(COMPRESS 대상 항목이 정답 turn과 안 겹쳤기 때문). 이번엔 다릅니다 - KEEP 항목 중에 실제로 정답 turn과 겹치는 게 있어서, 자르는 방식에 따라 PASS/FAIL이 바뀔 수 있습니다.
-assistant: 시도한다면: KEEP 항목에도 길이 상한을 두되(COMPRESS의 40자보다는 넉넉하게, 예: 150~200자), 자른 뒤에 reconstruction test를 반드시 재실행해서 7/7이 유지되는지 확인해야 합니다. 확인 안 하고 token만 줄이면 안 됩니다.
-user: SUMMARY_MAX_CHARS를 또 만지는 것 말고, KEEP 텍스트 자체에 별도 길이 상한을 추가하는 방향으로 해줘. 그리고 반드시 테스트랑 reconstruction 둘 다 통과하는지 확인하고.
+user: COMPRESS 요약이 이상하게 나와. "longish"라는 단어가 요약에서 "long"으로 잘려서 나왔어 - 원문에 없던 다른 단어처럼 보여.
+assistant: 확인했습니다. src/context_analysis.py의 _make_summary가 SUMMARY_MAX_CHARS(40자) 위치에서 그냥 글자 수로 자르고 있습니다. 예: "uses a longish word"를 40자에서 자르면 "uses a long"이 됩니다 - "longish"가 "long"이라는 다른 단어처럼 보이는 원인입니다.
+user: 그럼 단어 경계에서 자르게 고쳐줘. 근데 기존 테스트는 절대 깨면 안돼.
+assistant: 방법은 40자 이내에서 마지막 공백을 찾아 그 위치에서 자르는 것입니다. 표준 라이브러리만 쓰는 이 프로젝트 원칙상 정규식이나 str.rfind(' ', 0, 40)이면 충분합니다.
+assistant: 주의할 점이 하나 있습니다: 원문에 공백이 아예 없으면(예: 40자 넘는 URL이나 긴 토큰 하나) 공백을 못 찾아서 빈 문자열이 될 수 있습니다 - 그 경우엔 기존 방식(그냥 40자에서 자르기)으로 반드시 fallback해야 합니다. 이 fallback을 빠뜨리면 그 경우에 요약이 아예 빈 문자열이 되는 새 버그가 생깁니다.
+user: 그 fallback까지 반영해서 고쳐줘. 그리고 새로 테스트 하나 추가해서 이 동작(단어 경계 절삭 + 공백 없을 때 fallback)을 둘 다 검증해. 기존 테스트 전부 통과하는지도 꼭 확인하고.
 """
 
 

@@ -2,7 +2,71 @@
 
 ## 상태
 
-harness 구현 완료(worktree 격리, tool-calling 루프, 자동 판정, 재시도 로직 전부 mock으로 검증됨). **실제 3-way 실행 결과는 수집하지 못했다** — 실행을 사용자 로컬 머신(Groq 무료 tier 계정)에서 여러 차례 시도했고 그 과정에서 실제 오류 5종(Cloudflare 1010, 413 단일 요청 초과, 429 분당 누적 초과, 400 tool_use_failed, 413 재발)을 실제로 겪고 각각 원인을 밝혀 코드로 고쳤다. 하지만 계정의 TPM(분당 8000 token) 한도 자체가 이 task 규모에 비해 너무 작아서, 재시도를 계속해도 실행이 끝까지 도는 데 오랜 시간이 걸리는 상태였다. 마감(제출 하루 전)을 고려해 여기서 실행을 중단하기로 결정했다 — harness는 남기고, 실행은 다음으로 미룬다. 이유는 아래 "왜 여기서 멈췄는가" 참조.
+**2026-08-19, 사용자 로컬 머신에서 Gemini(`gemini-3.5-flash-lite`) provider로 3-way 실행이 두 번 실제로 끝까지 완료됐다.** 1차는 meta-task 버전("실제 결과 - 1차" 참조, 세 조건 다 실패), 2차는 재설계된 coding-continuation task 버전("실제 결과 - 2차" 참조, A/B 성공·C 실패)이다. Groq 무료 tier로는 TPM 한도 때문에 끝까지 실행하지 못했던 과거 시도(아래 "왜 여기서 멈췄는가" 참조)는 그 판단 과정을 그대로 남겨둔다 — 이후 Gemini provider를 추가해서 실제로 실행에 성공했다.
+
+harness 구현 완료(worktree 격리, tool-calling 루프, 자동 판정, 재시도 로직 전부 mock + 실제 실행으로 검증됨).
+
+## 추가: task 재설계 (2026-08-19, 두 번째)
+
+첫 실행(아래 "실제 결과") 이후, task 자체가 "CCE가 CCE 자신을 baseline보다 효율적으로 만들어라"는
+meta-task였다는 지적을 받았다 - CCE가 CCE를 고치는 자기참조적 과제라서, "새 세션이 실제 coding을
+이어받아 완수하는가"를 보려는 원래 목적과 맞지 않았다(세 조건 다 25라운드 동안 완수 못 한 것도
+이 task 자체가 크고 모호했던 탓일 수 있다). task를 실제로 존재하는 작은 버그(`_make_summary`가
+단어 중간에서 자르는 문제, 5~10분 규모) 수정으로 다시 정의했다 - `task.md` 참조. 판정도
+`comparison_result.json` 기반에서 harness가 직접 작성한 구조적 acceptance check(문자열
+하드코딩이 아니라 "요약이 원문의 진짜 prefix인가 + 단어 경계에서 끊기는가"를 검사)로 바꿨고,
+`MAX_TOOL_ROUNDS`를 25 → 10(환경변수로 조정 가능)으로 줄였다. 정직하게 밝힐 점: Session
+C(CCE Working Context)의 memory용 예시 대화(`build_contexts.py`의 `REAL_DEV_LOG_RAW`)는 이
+벤치마크를 위해 새로 구성한 것이다 - 실제로 CCE 파이프라인에 통과시켜 봤더니, 5턴짜리 대화 중
+마지막 1턴만 KEEP되고 나머지(특히 "공백 없는 경우 fallback을 반드시 남겨둬야 한다"는 핵심 주의사항이
+담긴 turn)는 전부 버려졌다(`action_counts: {KEEP: 1, COMPRESS: 0, EXTERNALIZE: 0, DISCARD: 0}`,
+`contexts/session_c_meta.json`) - 이것도 알고리즘을 손대지 않고 나온 그대로 실행한다.
+
+## 실제 결과 - 2차 (2026-08-19, 재설계된 task, `gemini-3.5-flash-lite`, `MAX_TOOL_ROUNDS=10`)
+
+| 조건 | task_success | tests_pass | word_boundary_case | no_space_fallback_case | tool calls | input tok | output tok | 비용(USD, 근사) | 시간(s) | round |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Session A (원본 전체) | ✅ | OK | OK | OK | 10 | 107,819 | 3,651 | $0.012242 | 21.7 | 10/10 |
+| Session B (Generic Summary) | ✅ | OK | OK | OK | 9 | 88,552 | 5,280 | $0.010967 | 42.4 | 10/10 |
+| Session C (CCE Working Context) | ❌ | OK | **FAIL** | OK | 10 | 42,603 | 183 | $0.004334 | 10.7 | 10/10 |
+
+diff(실제로 파일을 고쳤는지): A는 `src/context_analysis.py` 6줄 추가, B는 `src/context_analysis.py` 수정 +
+`tests/test_context_analysis.py`에 새 테스트 23줄 추가, **C는 diff 없음(변경 없음)** - 10라운드를 다
+쓰고도 `write_file`을 한 번도 호출하지 않았다.
+
+**정직한 해석**:
+
+- 이번엔 A와 B가 실제로 task를 완수했다(`task_success=true`). C는 실패했다. **이건 CCE에 불리한
+  결과이고, 그대로 기록한다** - AGENTS.md 규칙 7.
+- C의 output token이 183으로 A(3,651)·B(5,280)보다 압도적으로 적다 - 10라운드 동안 사실상
+  거의 아무 것도 생성하지 않았다는 뜻이다. `diff_stat`이 비어있는 것과 일치한다.
+- 정확한 원인은 이 표만으로는 확정할 수 없다 - `results/cce_working_context.json`의 세부
+  `tool_call_counts`와 `final_message`를 봐야 안다(예: read_file/list_files만 반복했는지,
+  tool call 생성 자체가 막혔는지). 가설(검증 안 됨): 이 조건의 memory에 남아있던 유일한 KEEP
+  turn("그 fallback까지 반영해서 고쳐줘...")이 앞선 맥락 없이 툭 던져진 지시문이라, 그 아래
+  붙는 TASK 섹션의 명확한 지시문과 겹치면서 모델이 혼란을 겪었을 가능성이 있다 - 다만 이건
+  추측이고 확인된 사실이 아니다.
+- 앞서 기록한 대로 C의 memory는 5턴 중 1턴만 KEEP되고 나머지(특히 fallback 주의사항)가
+  DISCARD됐다 - 이번 실패가 그 정보 손실과 인과관계가 있는지는 이 실행 하나로는 확정할 수 없다
+  (fixture 1개, 실행 1회, 모델 비결정성 - 알려진 한계 참조).
+- 이 결과로 "CCE가 실제 coding continuation을 완수시킨다"는 주장은 할 수 없다 - 오히려 이번
+  실행에서는 CCE가 가장 저렴하고 빨랐지만 유일하게 실패한 조건이었다.
+
+## 실제 결과 - 1차 (2026-08-19, meta-task 버전, 위 재설계 이전)
+
+fixture 1개, task 1개, 조건당 실행 1회(`gemini-3.5-flash-lite`, temperature=0.0) 기준. harness가 LLM 자기 보고가 아니라 worktree에서 직접 테스트/비교 스크립트를 실행해서 판정했다.
+
+| 조건 | task_success | tests_pass | 최종 token | reconstruction PASS | round 수 | input tokens | 소요 시간(s) |
+|---|---|---|---|---|---|---|---|
+| Session A (원본 전체) | ❌ | OK | 486 | 7/7 | 25/25 | 164,424 | 96.6 |
+| Session B (Generic Summary) | ❌ | OK | 486 | 7/7 | 25/25 | 147,734 | 110.0 |
+| Session C (CCE Working Context) | ❌ | OK | 486 | 7/7 | 25/25 | 139,102 | 61.4 |
+
+**정직한 해석**:
+
+- **세 조건 다 `task_success=false`다.** task는 "COMPRESS를 336 token 미만으로 더 줄이면서 reconstruction 7/7 유지"였는데, 세 조건 다 25라운드를 다 쓰고도 이 코드 개선 자체를 완수하지 못했다(A는 `write_file` 호출 없이 탐색만 하다 라운드를 소진했다). 즉 이 실험은 **"CCE가 다른 조건보다 실제 task를 더 잘 완수한다"는 증거를 만들지 못했다** — 세 조건 다 실패했다. AGENTS.md 규칙 7에 따라 그대로 기록한다.
+- 다만 부차적으로 관찰된 것: 같은 task, 같은 tool 예산(25라운드)에서 Session C(CCE)가 전체 세션 동안 실제로 쓴 input token이 가장 적었고(139,102 vs A 164,424 / B 147,734), 소요 시간도 가장 짧았다(61.4s vs 96.6s / 110.0s). 세 조건의 reconstruction PASS·최종 token 수치가 동일한 건 이 값들이 harness가 "지금 저장소 상태"를 재측정한 것이라 세 조건 다 코드를 안 고쳤으니 당연히 같다 — 이건 CCE의 성과가 아니다.
+- 이 "input token이 더 적게 든다"는 관찰도 실행 1회, 모델 1개 기준이라 통계적으로 확정할 수 없다(아래 "알려진 한계" 참조). 우연일 수 있다.
 
 ## 왜 여기서 멈췄는가
 
@@ -30,6 +94,25 @@ harness 구현 완료(worktree 격리, tool-calling 루프, 자동 판정, 재�
 - 실행은 사용자 로컬 머신에서 해야 한다(네트워크 제약, 위 참조).
 - `GROQ_API_KEY`는 환경변수로만 전달한다. 코드/커밋에 절대 포함하지 않는다.
 - fixture 1개, task 1개, 조건당 실행 1회 기준. 모델 비결정성을 감안한 반복 실행은 하지 않았다.
+
+## 추가: Gemini provider 옵션 (2026-08-19)
+
+멈춘 이유가 "코드가 안 돼서"가 아니라 "Groq 무료 tier TPM(분당 6,000~8,000)이 이 벤치마크
+규모에 비해 작아서 재시도가 오래 걸린다"는 점이었으므로, `LLM_PROVIDER=gemini`로 Gemini
+2.5 Flash-Lite를 쓸 수 있게 `harness.py`에 provider 스위치를 추가했다. 두 provider 다
+OpenAI 호환 chat/completions 형식이라 tool-calling 로직은 그대로 재사용했고, 에러
+처리는 Groq에서 실제로 확인한 "try again in Ns" 형식만 정확히 파싱하고 Gemini의 정확한
+rate-limit 에러 문구는 아직 실사용으로 확인하지 못했으므로 지수 백오프로 대체했다(억지로
+포맷을 안다고 가정하지 않았다). 실행은 여전히 사용자 로컬 머신에서 해야 한다 — sandbox는
+`generativelanguage.googleapis.com`도 막혀 있어(2026-08-18 `curl -v`로 직접 확인) Gemini로
+바꿔도 sandbox 안에서는 실행할 수 없다. 이 옵션 추가 시점까지도 3-way 실행 결과는 아직
+수집하지 못한 상태다 — 결과가 나오면 이 문서와 `docs/results.md`를 갱신한다.
+
+실제로 로컬에서 처음 실행했을 때(2026-08-19), `gemini-2.5-flash-lite` 모델이 "신규
+사용자에게는 더 이상 제공되지 않는다"(404, `gemini-3.5-flash-lite`로 교체 안내)는 응답을
+받았다 — 이 프로젝트의 fixture 자체가 다루는 문제(Groq `llama-3.1-8b-instant` 모델
+deprecated)와 똑같은 종류의 일을 이 벤치마크 코드 자신도 겪은 것이다. 기본 모델명을
+`gemini-3.5-flash-lite`로 바꿨다.
 
 ## 알려진 한계
 
