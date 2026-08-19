@@ -1,7 +1,8 @@
 """3-way end-to-end task-completion benchmark harness.
 
-이 스크립트는 네트워크(Groq API)가 필요하므로 sandbox가 아니라 실제 네트워크가
-되는 환경(사용자 로컬 머신)에서 실행해야 한다.
+이 스크립트는 실제 LLM API 네트워크 호출이 필요하므로 sandbox가 아니라 실제
+네트워크가 되는 환경(사용자 로컬 머신)에서 실행해야 한다. Groq와 Gemini 둘 다
+OpenAI 호환 chat/completions 형식이라 LLM_PROVIDER 환경변수로 고른다.
 
 각 condition(a/b/c)마다:
   1. 현재 커밋에서 독립된 git worktree를 만든다(서로 영향 없음).
@@ -13,8 +14,13 @@
   5. 결과를 results/<condition>.json 에 기록한다.
 
 사용법:
+  # Groq (기본값)
   export GROQ_API_KEY=...
-  python3 experiments/e2e_benchmark/harness.py --condition a
+  python3 experiments/e2e_benchmark/harness.py --condition all
+
+  # Gemini (Groq 무료 tier TPM이 부족할 때 대안 - 2026-08 기준 무료 tier가 더 넉넉함)
+  export LLM_PROVIDER=gemini
+  export GEMINI_API_KEY=...
   python3 experiments/e2e_benchmark/harness.py --condition all
 
 의존성: 표준 라이브러리만 사용한다(urllib). pip install 불필요.
@@ -44,14 +50,43 @@ CONTEXTS_DIR = EXP_DIR / "contexts"
 WORKTREES_DIR = EXP_DIR / "worktrees"
 RESULTS_DIR = EXP_DIR / "results"
 
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 MAX_TOOL_ROUNDS = 25
 
-# 대략적인 Groq 가격(USD/1M token) - 실제 청구 금액이 아니라 근사 추정치다.
-# 모델/시점에 따라 실제 가격은 다를 수 있다. 정확한 수치는 https://groq.com/pricing 확인.
-APPROX_PRICE_PER_1M_INPUT = float(os.environ.get("GROQ_PRICE_INPUT_PER_1M", "0.10"))
-APPROX_PRICE_PER_1M_OUTPUT = float(os.environ.get("GROQ_PRICE_OUTPUT_PER_1M", "0.50"))
+# provider 선택: LLM_PROVIDER=groq(기본) 또는 LLM_PROVIDER=gemini.
+# 둘 다 OpenAI 호환 chat/completions 형식이라 tool-calling 루프 코드는 공유한다.
+# Gemini를 추가한 이유: Groq 무료 tier가 분당 6000~8000 token으로 이 벤치마크 규모에
+# 비해 작아 재시도가 오래 걸렸다. Gemini 2.5 Flash-Lite 무료 tier는 분당 250,000 token으로
+# 훨씬 여유롭다(2026-08 기준, 웹 검색으로 확인 - 두 값 다 사용 시점에 바뀔 수 있다).
+PROVIDER = os.environ.get("LLM_PROVIDER", "groq").lower()
+
+_PROVIDER_DEFAULTS = {
+    "groq": {
+        "api_url": "https://api.groq.com/openai/v1/chat/completions",
+        "model": "openai/gpt-oss-20b",
+        "api_key_env": "GROQ_API_KEY",
+        "price_input_per_1m": 0.10,
+        "price_output_per_1m": 0.50,
+    },
+    "gemini": {
+        "api_url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        "model": "gemini-2.5-flash-lite",
+        "api_key_env": "GEMINI_API_KEY",
+        "price_input_per_1m": 0.10,
+        "price_output_per_1m": 0.40,
+    },
+}
+if PROVIDER not in _PROVIDER_DEFAULTS:
+    raise SystemExit(f"알 수 없는 LLM_PROVIDER: {PROVIDER} (groq 또는 gemini만 지원)")
+
+_CFG = _PROVIDER_DEFAULTS[PROVIDER]
+MODEL = os.environ.get("LLM_MODEL", _CFG["model"])
+API_URL = _CFG["api_url"]
+API_KEY_ENV = _CFG["api_key_env"]
+
+# 대략적인 가격(USD/1M token) - 실제 청구 금액이 아니라 근사 추정치다.
+# 모델/시점에 따라 실제 가격은 다를 수 있다. 정확한 수치는 각 provider의 공식 pricing 페이지 확인.
+APPROX_PRICE_PER_1M_INPUT = float(os.environ.get("LLM_PRICE_INPUT_PER_1M", _CFG["price_input_per_1m"]))
+APPROX_PRICE_PER_1M_OUTPUT = float(os.environ.get("LLM_PRICE_OUTPUT_PER_1M", _CFG["price_output_per_1m"]))
 
 CONDITIONS = {
     "a": ("session_a_full_history.txt", "full_history"),
@@ -159,41 +194,48 @@ def remove_worktree(path: Path) -> None:
     subprocess.run(["git", "worktree", "remove", "--force", str(path)], cwd=REPO_ROOT, check=False)
 
 
-class GroqRateLimitError(RuntimeError):
-    """429 rate_limit_exceeded - 재시도로 해결 가능(TPM 롤링 윈도우가 지나면 풀림)."""
+class LLMRateLimitError(RuntimeError):
+    """429 rate limit - 재시도로 해결 가능(TPM/RPM 롤링 윈도우가 지나면 풀림).
+    retry_after가 None이면 서버가 정확한 대기 시간을 안 알려준 것 - 이 경우 호출부가
+    지수 백오프(exponential backoff)로 대체한다. Groq는 "try again in Ns" 형식으로
+    정확한 시간을 주는 걸 실제로 확인했지만, Gemini의 정확한 에러 문구는 아직
+    실사용으로 확인하지 못했다 - 확인 안 된 형식을 억지로 파싱하지 않고 None으로 둔다."""
 
-    def __init__(self, message: str, retry_after: float):
+    def __init__(self, message: str, retry_after: float | None):
         super().__init__(message)
         self.retry_after = retry_after
 
 
-class GroqToolCallGenerationError(RuntimeError):
-    """400 tool_use_failed - 모델이 tool call 인자를 잘못된 JSON으로 생성했을 때.
-    실제로 겪은 사례: run_tests처럼 인자가 없는 함수인데도 모델이 이상한 문자열을
-    arguments로 생성해서 Groq 서버가 파싱에 실패, 요청 자체가 400으로 거부됨.
+class LLMToolCallGenerationError(RuntimeError):
+    """400 tool_use_failed 계열 - 모델이 tool call 인자를 잘못된 JSON으로 생성했을 때.
+    Groq에서 실제로 겪은 사례: run_tests처럼 인자가 없는 함수인데도 모델이 이상한
+    문자열을 arguments로 생성해서 서버가 파싱에 실패, 요청 자체가 400으로 거부됨.
     일시적인 생성 실패인 경우가 많아 짧게 재시도하면 넘어가는 경우가 많다."""
 
 
-def _parse_retry_after(error_text: str, default: float = 20.0) -> float:
+def _parse_retry_after(error_text: str) -> float | None:
+    """Groq는 "try again in 29.73s" 형식을 실제로 확인했다. 다른 provider가 이
+    형식을 안 쓰면 None을 반환하고, 호출부가 지수 백오프로 대체한다."""
     m = re.search(r"try again in ([0-9.]+)s", error_text)
-    return float(m.group(1)) if m else default
+    return float(m.group(1)) if m else None
 
 
 def _classify_error(status: int, body_text: str) -> Exception:
     if status == 429:
-        return GroqRateLimitError(body_text, _parse_retry_after(body_text))
+        return LLMRateLimitError(body_text, _parse_retry_after(body_text))
     if status == 400 and "tool_use_failed" in body_text:
-        return GroqToolCallGenerationError(body_text)
-    return RuntimeError(f"Groq API 오류 {status}: {body_text}")
+        return LLMToolCallGenerationError(body_text)
+    return RuntimeError(f"{PROVIDER} API 오류 {status}: {body_text}")
 
 
-def _call_groq_via_curl(body: bytes, api_key: str) -> dict:
+def _call_llm_via_curl(body: bytes, api_key: str) -> dict:
     """curl로 호출한다. Cloudflare가 urllib의 TLS/UA 지문을 봇으로 오판해 1010으로
-    막는 경우가 있는데, curl은 실제 브라우저와 지문이 비슷해 이 문제를 우회할 수 있다."""
+    막는 경우가 있는데(Groq에서 실제로 겪음), curl은 실제 브라우저와 지문이 비슷해
+    이 문제를 우회할 수 있다."""
     marker = "__HTTP_STATUS__:"
     proc = subprocess.run(
         [
-            "curl", "-sS", "-X", "POST", GROQ_API_URL,
+            "curl", "-sS", "-X", "POST", API_URL,
             "-H", f"Authorization: Bearer {api_key}",
             "-H", "Content-Type: application/json",
             "--data-binary", "@-",
@@ -211,9 +253,9 @@ def _call_groq_via_curl(body: bytes, api_key: str) -> dict:
     return json.loads(body_text)
 
 
-def _call_groq_via_urllib(body: bytes, api_key: str) -> dict:
+def _call_llm_via_urllib(body: bytes, api_key: str) -> dict:
     req = urllib.request.Request(
-        GROQ_API_URL,
+        API_URL,
         data=body,
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -235,24 +277,25 @@ MAX_RATE_LIMIT_RETRIES = 10
 MAX_TOOL_GEN_RETRIES = 8
 
 
-def call_groq(messages: list[dict], api_key: str) -> dict:
+def call_llm(messages: list[dict], api_key: str) -> dict:
     body = json.dumps(
-        {"model": GROQ_MODEL, "messages": messages, "tools": TOOLS, "tool_choice": "auto", "temperature": 0.0}
+        {"model": MODEL, "messages": messages, "tools": TOOLS, "tool_choice": "auto", "temperature": 0.0}
     ).encode("utf-8")
-    caller = _call_groq_via_curl if shutil.which("curl") else _call_groq_via_urllib
+    caller = _call_llm_via_curl if shutil.which("curl") else _call_llm_via_urllib
     rate_limit_attempts = 0
     tool_gen_attempts = 0
     last_err: Exception | None = None
     while rate_limit_attempts < MAX_RATE_LIMIT_RETRIES and tool_gen_attempts < MAX_TOOL_GEN_RETRIES:
         try:
             return caller(body, api_key)
-        except GroqRateLimitError as e:
+        except LLMRateLimitError as e:
             rate_limit_attempts += 1
-            wait = e.retry_after + 2
+            # retry_after를 서버가 안 줬으면(Gemini 등 미확인 형식) 지수 백오프로 대체.
+            wait = (e.retry_after + 2) if e.retry_after is not None else min(2 ** rate_limit_attempts, 60)
             print(f"    (rate limit - {wait:.0f}초 대기 후 재시도 {rate_limit_attempts}/{MAX_RATE_LIMIT_RETRIES})")
             time.sleep(wait)
             last_err = e
-        except GroqToolCallGenerationError as e:
+        except LLMToolCallGenerationError as e:
             tool_gen_attempts += 1
             print(f"    (tool call 생성 실패 - 3초 후 재시도 {tool_gen_attempts}/{MAX_TOOL_GEN_RETRIES})")
             time.sleep(3)
@@ -351,7 +394,7 @@ def run_condition(cond_key: str, api_key: str) -> dict[str, Any]:
     for round_i in range(MAX_TOOL_ROUNDS):
         rounds_used = round_i + 1
         messages = _trim_messages_to_budget(messages)
-        resp = call_groq(messages, api_key)
+        resp = call_llm(messages, api_key)
         usage = resp.get("usage", {})
         prompt_tokens_total += usage.get("prompt_tokens", 0)
         completion_tokens_total += usage.get("completion_tokens", 0)
@@ -412,7 +455,8 @@ def run_condition(cond_key: str, api_key: str) -> dict[str, Any]:
 
     result = {
         "condition": cond_name,
-        "model": GROQ_MODEL,
+        "provider": PROVIDER,
+        "model": MODEL,
         "task_success": task_success,
         "tests_pass": tests_pass,
         "proposed_working_context_tokens": proposed_tokens,
@@ -441,10 +485,12 @@ def main() -> int:
     parser.add_argument("--keep-worktrees", action="store_true", help="종료 후 worktree를 지우지 않는다(diff 직접 확인용)")
     args = parser.parse_args()
 
-    api_key = os.environ.get("GROQ_API_KEY")
+    api_key = os.environ.get(API_KEY_ENV)
     if not api_key:
-        print("GROQ_API_KEY 환경변수가 없습니다. export GROQ_API_KEY=... 로 설정하세요.")
+        print(f"{API_KEY_ENV} 환경변수가 없습니다. export {API_KEY_ENV}=... 로 설정하세요.")
+        print(f"(현재 LLM_PROVIDER={PROVIDER}. groq/gemini를 바꾸려면 LLM_PROVIDER 환경변수를 설정하세요.)")
         return 1
+    print(f"provider={PROVIDER}, model={MODEL}")
 
     keys = ["a", "b", "c"] if args.condition == "all" else [args.condition]
     for k in keys:

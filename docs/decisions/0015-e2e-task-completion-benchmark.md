@@ -31,6 +31,19 @@ harness 구현 완료(worktree 격리, tool-calling 루프, 자동 판정, 재�
 - `GROQ_API_KEY`는 환경변수로만 전달한다. 코드/커밋에 절대 포함하지 않는다.
 - fixture 1개, task 1개, 조건당 실행 1회 기준. 모델 비결정성을 감안한 반복 실행은 하지 않았다.
 
+## 추가: Gemini provider 옵션 (2026-08-19)
+
+멈춘 이유가 "코드가 안 돼서"가 아니라 "Groq 무료 tier TPM(분당 6,000~8,000)이 이 벤치마크
+규모에 비해 작아서 재시도가 오래 걸린다"는 점이었으므로, `LLM_PROVIDER=gemini`로 Gemini
+2.5 Flash-Lite를 쓸 수 있게 `harness.py`에 provider 스위치를 추가했다. 두 provider 다
+OpenAI 호환 chat/completions 형식이라 tool-calling 로직은 그대로 재사용했고, 에러
+처리는 Groq에서 실제로 확인한 "try again in Ns" 형식만 정확히 파싱하고 Gemini의 정확한
+rate-limit 에러 문구는 아직 실사용으로 확인하지 못했으므로 지수 백오프로 대체했다(억지로
+포맷을 안다고 가정하지 않았다). 실행은 여전히 사용자 로컬 머신에서 해야 한다 — sandbox는
+`generativelanguage.googleapis.com`도 막혀 있어(2026-08-18 `curl -v`로 직접 확인) Gemini로
+바꿔도 sandbox 안에서는 실행할 수 없다. 이 옵션 추가 시점까지도 3-way 실행 결과는 아직
+수집하지 못한 상태다 — 결과가 나오면 이 문서와 `docs/results.md`를 갱신한다.
+
 ## 알려진 한계
 
 - `estimated_cost_usd_approx`는 하드코딩된 근사 단가 기준이다. 실제 청구액이 아니다.
